@@ -1,0 +1,168 @@
+:root {
+  --bg: #f7f7f8;
+  --card-bg: #ffffff;
+  --text: #1a1a1a;
+  --muted: #6b7280;
+  --border: #e5e7eb;
+  --accent: #2563eb;
+  --done: #16a34a;
+  --progress: #d97706;
+  --upcoming: #9ca3af;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f1115;
+    --card-bg: #1a1d24;
+    --text: #e8e9eb;
+    --muted: #9aa0aa;
+    --border: #2a2e37;
+    --accent: #5b8def;
+    --done: #4ade80;
+    --progress: #fbbf24;
+    --upcoming: #6b7280;
+  }
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  font-family: -apple-system, "Segoe UI", "PingFang TC", "Microsoft JhengHei", sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  line-height: 1.6;
+}
+
+.container {
+  max-width: 780px;
+  margin: 0 auto;
+  padding: 40px 20px 80px;
+}
+
+header h1 {
+  font-size: 1.6rem;
+  margin: 0 0 6px;
+}
+
+header p.desc {
+  color: var(--muted);
+  margin: 0 0 24px;
+}
+
+.progress-summary {
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 18px 20px;
+  margin-bottom: 32px;
+}
+
+.progress-summary .stats {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.85rem;
+  color: var(--muted);
+  margin-bottom: 8px;
+}
+
+.progress-bar-track {
+  height: 8px;
+  border-radius: 999px;
+  background: var(--border);
+  overflow: hidden;
+}
+
+.progress-bar-fill {
+  height: 100%;
+  background: var(--accent);
+  border-radius: 999px;
+  transition: width 0.3s ease;
+}
+
+.timeline {
+  position: relative;
+  padding-left: 28px;
+}
+
+.timeline::before {
+  content: "";
+  position: absolute;
+  left: 6px;
+  top: 6px;
+  bottom: 6px;
+  width: 2px;
+  background: var(--border);
+}
+
+.milestone {
+  position: relative;
+  margin-bottom: 24px;
+}
+
+.milestone::before {
+  content: "";
+  position: absolute;
+  left: -28px;
+  top: 4px;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 3px solid var(--card-bg);
+  background: var(--upcoming);
+}
+
+.milestone[data-status="done"]::before { background: var(--done); }
+.milestone[data-status="in-progress"]::before { background: var(--progress); }
+
+.milestone-card {
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 14px 16px;
+}
+
+.milestone-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.milestone-title {
+  font-weight: 600;
+  font-size: 1.02rem;
+}
+
+.milestone-date {
+  color: var(--muted);
+  font-size: 0.85rem;
+  white-space: nowrap;
+}
+
+.milestone-desc {
+  margin-top: 6px;
+  color: var(--muted);
+  font-size: 0.92rem;
+}
+
+.badge {
+  display: inline-block;
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 2px 9px;
+  border-radius: 999px;
+  margin-top: 8px;
+}
+
+.badge[data-status="done"] { background: rgba(22,163,74,0.15); color: var(--done); }
+.badge[data-status="in-progress"] { background: rgba(217,119,6,0.15); color: var(--progress); }
+.badge[data-status="upcoming"] { background: rgba(156,163,175,0.15); color: var(--upcoming); }
+
+footer {
+  margin-top: 40px;
+  text-align: center;
+  color: var(--muted);
+  font-size: 0.8rem;
+}

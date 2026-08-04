@@ -1,0 +1,45 @@
+{
+  "project": {
+    "name": "GC Gaming Chair Project",
+    "description": "個人專案時間軸與里程碑追蹤",
+    "startDate": "2026-08-01",
+    "targetDate": "2026-12-31"
+  },
+  "milestones": [
+    {
+      "id": 1,
+      "title": "需求與規格確認",
+      "date": "2026-08-10",
+      "status": "done",
+      "description": "確認椅子設計規格、材料與尺寸需求"
+    },
+    {
+      "id": 2,
+      "title": "原型設計",
+      "date": "2026-09-01",
+      "status": "in-progress",
+      "description": "完成第一版設計圖與 3D 模型"
+    },
+    {
+      "id": 3,
+      "title": "樣品製作",
+      "date": "2026-10-01",
+      "status": "upcoming",
+      "description": "打樣並進行結構測試"
+    },
+    {
+      "id": 4,
+      "title": "測試與修正",
+      "date": "2026-11-01",
+      "status": "upcoming",
+      "description": "使用者測試、舒適度與耐久度驗證"
+    },
+    {
+      "id": 5,
+      "title": "專案結案",
+      "date": "2026-12-31",
+      "status": "upcoming",
+      "description": "最終驗收與交付"
+    }
+  ]
+}
