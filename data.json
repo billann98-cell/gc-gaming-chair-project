@@ -1,45 +1,87 @@
 {
   "project": {
     "name": "GC Gaming Chair Project",
-    "description": "個人專案時間軸與里程碑追蹤",
-    "startDate": "2026-08-01",
-    "targetDate": "2026-12-31"
+    "description": "產品開發排程追蹤（Award → 1st lot ETD）"
   },
-  "milestones": [
+  "periods": [
+    { "index": 1, "date": "" },
+    { "index": 2, "date": "" },
+    { "index": 3, "date": "" },
+    { "index": 4, "date": "" },
+    { "index": 5, "date": "" },
+    { "index": 6, "date": "" },
+    { "index": 7, "date": "" },
+    { "index": 8, "date": "" }
+  ],
+  "phaseMarkers": [
+    { "label": "Award", "line": 1 },
+    { "label": "TS", "line": 3 },
+    { "label": "T0 / T1", "line": 5 },
+    { "label": "Pre-NPI", "line": 5, "highlight": true },
+    { "label": "T2", "line": 6 },
+    { "label": "NPI", "line": 7, "highlight": true },
+    { "label": "MP", "line": 8 },
+    { "label": "1st lot ETD", "line": 9 }
+  ],
+  "tracks": [
     {
-      "id": 1,
-      "title": "需求與規格確認",
-      "date": "2026-08-10",
-      "status": "done",
-      "description": "確認椅子設計規格、材料與尺寸需求"
+      "key": "product",
+      "label": "產品",
+      "color": "orange",
+      "tasks": [
+        { "title": "DFM", "start": 2, "end": 3, "status": "upcoming" },
+        { "title": "Mock up", "start": 2, "end": 3, "status": "upcoming" },
+        { "title": "色板打樣 / 承認 (ID/CMF)", "start": 3, "end": 4, "status": "upcoming" },
+        { "title": "Tooling", "start": 3, "end": 4, "status": "upcoming" },
+        { "title": "修模", "start": 4, "end": 4, "status": "upcoming" },
+        { "title": "咬花", "start": 5, "end": 5, "status": "upcoming" },
+        { "title": "工件承認 (ID/CMF)", "start": 5, "end": 5, "status": "upcoming" },
+        { "title": "PVT生產", "start": 6, "end": 6, "status": "upcoming" },
+        { "title": "PVT全檢", "start": 6, "end": 7, "status": "upcoming" },
+        { "title": "QTR", "start": 7, "end": 7, "status": "upcoming" },
+        { "title": "鍍樣 (PM)", "start": 7, "end": 7, "status": "upcoming" },
+        { "title": "Sales & MR sample ETD", "start": 8, "end": 8, "status": "upcoming" }
+      ]
     },
     {
-      "id": 2,
-      "title": "原型設計",
-      "date": "2026-09-01",
-      "status": "in-progress",
-      "description": "完成第一版設計圖與 3D 模型"
+      "key": "packaging",
+      "label": "包裝",
+      "color": "slate",
+      "tasks": [
+        { "title": "包裝結構樣", "start": 3, "end": 3, "status": "upcoming" },
+        { "title": "製作 label", "start": 3, "end": 3, "status": "upcoming" },
+        { "title": "製作 QSG", "start": 3, "end": 3, "status": "upcoming" },
+        { "title": "Label 試刷", "start": 6, "end": 6, "status": "upcoming" },
+        { "title": "QSG, 彩盒, label, 包材簽樣", "start": 7, "end": 7, "status": "upcoming" }
+      ]
     },
     {
-      "id": 3,
-      "title": "樣品製作",
-      "date": "2026-10-01",
-      "status": "upcoming",
-      "description": "打樣並進行結構測試"
+      "key": "certification",
+      "label": "認證",
+      "color": "rust",
+      "tasks": [
+        { "title": "認證開案", "start": 3, "end": 3, "status": "upcoming" },
+        { "title": "文件審查", "start": 4, "end": 4, "status": "upcoming" },
+        { "title": "送樣", "start": 5, "end": 5, "status": "upcoming" },
+        { "title": "認證測試 (4-6wks)", "start": 5, "end": 6, "status": "upcoming" },
+        { "title": "投件 (2wks)", "start": 7, "end": 7, "status": "upcoming" },
+        { "title": "取證", "start": 8, "end": 8, "status": "upcoming" }
+      ]
     },
     {
-      "id": 4,
-      "title": "測試與修正",
-      "date": "2026-11-01",
-      "status": "upcoming",
-      "description": "使用者測試、舒適度與耐久度驗證"
-    },
-    {
-      "id": 5,
-      "title": "專案結案",
-      "date": "2026-12-31",
-      "status": "upcoming",
-      "description": "最終驗收與交付"
+      "key": "marketing",
+      "label": "行銷素材",
+      "color": "olive",
+      "tasks": [
+        { "title": "MKT Kick off", "start": 3, "end": 3, "status": "upcoming" },
+        { "title": "Naming", "start": 3, "end": 3, "status": "upcoming" },
+        { "title": "網頁 layout", "start": 4, "end": 4, "status": "upcoming" },
+        { "title": "Wording", "start": 4, "end": 8, "status": "upcoming" },
+        { "title": "Photo Brief", "start": 5, "end": 5, "status": "upcoming" },
+        { "title": "拍攝", "start": 6, "end": 6, "status": "upcoming" },
+        { "title": "修圖", "start": 6, "end": 7, "status": "upcoming" },
+        { "title": "Sales Kit 產品照/網頁", "start": 8, "end": 8, "status": "upcoming" }
+      ]
     }
   ]
 }

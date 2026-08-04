@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>GC Gaming Chair Project - 進度追蹤</title>
+  <title>GC Gaming Chair Project - 排程追蹤</title>
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
@@ -13,17 +13,23 @@
       <p class="desc" id="project-desc">專案說明</p>
     </header>
 
-    <section class="progress-summary">
-      <div class="stats">
-        <span id="progress-count">0 / 0 完成</span>
-        <span id="progress-pct">0%</span>
+    <div class="gantt-scroll">
+      <div class="gantt">
+        <div class="gantt-corner"></div>
+        <div class="gantt-head">
+          <div class="marker-row" id="marker-row"></div>
+          <div class="period-row" id="period-row"></div>
+        </div>
+        <div class="gantt-body" id="gantt-body"></div>
+        <div class="marker-lines" id="marker-lines"></div>
       </div>
-      <div class="progress-bar-track">
-        <div class="progress-bar-fill" id="progress-fill" style="width: 0%"></div>
-      </div>
-    </section>
+    </div>
 
-    <div class="timeline" id="timeline"></div>
+    <div class="legend">
+      <div class="legend-item"><span class="legend-swatch done"></span>已完成</div>
+      <div class="legend-item"><span class="legend-swatch in-progress"></span>進行中</div>
+      <div class="legend-item"><span class="legend-swatch upcoming"></span>待辦</div>
+    </div>
 
     <footer>
       資料來源：<code>data.json</code> ・ 編輯後推送到 GitHub 即可更新此頁面
