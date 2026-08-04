@@ -6,7 +6,8 @@ $listener.Start()
 Write-Host "Serving $root on http://localhost:$port/"
 
 $mime = @{
-  ".html" = "text/html"; ".js" = "application/javascript"; ".css" = "text/css"; ".json" = "application/json"
+  ".html" = "text/html; charset=utf-8"; ".js" = "application/javascript; charset=utf-8"
+  ".css" = "text/css; charset=utf-8"; ".json" = "application/json; charset=utf-8"
 }
 
 while ($listener.IsListening) {

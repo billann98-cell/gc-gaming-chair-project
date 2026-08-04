@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>專案排程</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="container">
+    <header class="dash-header">
+      <div>
+        <p class="back-link"><a href="index.html">← 所有專案</a></p>
+        <h1 id="project-name">專案名稱</h1>
+        <p class="desc" id="project-desc">專案說明</p>
+      </div>
+      <div class="header-actions">
+        <button class="btn-secondary" id="edit-toggle-btn">✏️ 編輯</button>
+        <button class="btn-primary" id="save-btn" style="display:none;">儲存到 GitHub</button>
+      </div>
+    </header>
+
+    <div class="gantt-scroll">
+      <div class="gantt">
+        <div class="gantt-corner"></div>
+        <div class="gantt-head">
+          <div class="marker-row" id="marker-row"></div>
+          <div class="period-row" id="period-row"></div>
+        </div>
+        <div class="gantt-body" id="gantt-body"></div>
+        <div class="marker-lines" id="marker-lines"></div>
+      </div>
+    </div>
+
+    <div class="legend">
+      <div class="legend-item"><span class="legend-swatch done"></span>已完成</div>
+      <div class="legend-item"><span class="legend-swatch in-progress"></span>進行中</div>
+      <div class="legend-item"><span class="legend-swatch upcoming"></span>待辦</div>
+    </div>
+
+    <div class="edit-panel" id="edit-panel" style="display:none;"></div>
+
+    <footer>
+      資料來源：<code id="project-file-path"></code>
+    </footer>
+  </div>
+
+  <script src="config.js"></script>
+  <script src="project.js"></script>
+</body>
+</html>

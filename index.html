@@ -3,39 +3,31 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>GC Gaming Chair Project - 排程追蹤</title>
+  <title>專案排程追蹤</title>
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
   <div class="container">
-    <header>
-      <h1 id="project-name">專案名稱</h1>
-      <p class="desc" id="project-desc">專案說明</p>
+    <header class="dash-header">
+      <div>
+        <h1>專案排程追蹤</h1>
+        <p class="desc">選擇一個專案查看排程，或建立新專案</p>
+      </div>
+      <button class="btn-secondary" id="token-btn">🔑 GitHub Token</button>
     </header>
 
-    <div class="gantt-scroll">
-      <div class="gantt">
-        <div class="gantt-corner"></div>
-        <div class="gantt-head">
-          <div class="marker-row" id="marker-row"></div>
-          <div class="period-row" id="period-row"></div>
-        </div>
-        <div class="gantt-body" id="gantt-body"></div>
-        <div class="marker-lines" id="marker-lines"></div>
-      </div>
-    </div>
+    <div id="reminders-slot"></div>
 
-    <div class="legend">
-      <div class="legend-item"><span class="legend-swatch done"></span>已完成</div>
-      <div class="legend-item"><span class="legend-swatch in-progress"></span>進行中</div>
-      <div class="legend-item"><span class="legend-swatch upcoming"></span>待辦</div>
-    </div>
+    <div class="project-list" id="project-list"></div>
+
+    <button class="btn-primary" id="new-project-btn">+ 新增專案</button>
 
     <footer>
-      資料來源：<code>data.json</code> ・ 編輯後推送到 GitHub 即可更新此頁面
+      資料存放在 <code>projects/</code> 資料夾 ・ 需要 GitHub Token 才能新增/編輯
     </footer>
   </div>
 
-  <script src="script.js"></script>
+  <script src="config.js"></script>
+  <script src="dashboard.js"></script>
 </body>
 </html>

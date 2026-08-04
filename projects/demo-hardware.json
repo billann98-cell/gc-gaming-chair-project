@@ -1,6 +1,6 @@
 {
   "project": {
-    "name": "GC Gaming Chair Project",
+    "name": "範例硬體專案",
     "description": "產品開發排程追蹤（Award → 1st lot ETD）"
   },
   "periods": [
@@ -32,7 +32,12 @@
         { "title": "DFM", "start": 2, "end": 3, "status": "upcoming" },
         { "title": "Mock up", "start": 2, "end": 3, "status": "upcoming" },
         { "title": "色板打樣 / 承認 (ID/CMF)", "start": 3, "end": 4, "status": "upcoming" },
-        { "title": "Tooling", "start": 3, "end": 4, "status": "upcoming" },
+        { "title": "Tooling", "start": 3, "end": 4, "status": "upcoming", "subtasks": [
+          { "title": "模具報價 / 下單", "done": false },
+          { "title": "模具打樣", "done": false },
+          { "title": "試模 T1", "done": false },
+          { "title": "修模確認", "done": false }
+        ] },
         { "title": "修模", "start": 4, "end": 4, "status": "upcoming" },
         { "title": "咬花", "start": 5, "end": 5, "status": "upcoming" },
         { "title": "工件承認 (ID/CMF)", "start": 5, "end": 5, "status": "upcoming" },
