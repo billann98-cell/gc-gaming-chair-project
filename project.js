@@ -1036,36 +1036,51 @@ const STATUS_ALIASES = {
   已完成: "done", 完成: "done", done: "done", 結案: "done",
 };
 
-function parseImportText(text) {
-  const lines = text.replace(/\r/g, "").split("\n").filter((l) => l.trim());
-  if (!lines.length) return { rows: [], newTracks: [] };
+function taskHeaderKey(c) {
+  if (/軌道|分類/.test(c)) return "track";
+  if (/任務|項目|名稱/.test(c)) return "title";
+  if (/開始/.test(c)) return "start";
+  if (/結束|完成日/.test(c)) return "end";
+  if (/狀態/.test(c)) return "status";
+  if (/負責|owner/i.test(c)) return "owner";
+  if (/備註|說明|note/i.test(c)) return "note";
+  return null;
+}
 
-  const delim = lines.some((l) => l.includes("\t")) ? "\t" : ",";
+// 從 Excel 讀回來的日期常常是「1899-12-30 起算的天數」這種序號，
+// 使用者在範本裡打 2026-09-01，Excel 就會自動轉成 46266 之類的數字。
+// 所以純數字先當序號解讀，其他才走文字格式。
+function cellToISO(v) {
+  const s = String(v == null ? "" : v).trim();
+  if (!s) return { iso: "", legacy: "" };
+  if (/^\d+(\.\d+)?$/.test(s)) {
+    const iso = excelSerialToISO(s);
+    return iso ? { iso, legacy: "" } : { iso: "", legacy: s };
+  }
+  return coerceToISO(s);
+}
+
+// 貼上匯入與檔案匯入共用同一套驗證，避免兩條路徑對「什麼算合法」有不同標準
+function parseTaskRows(rows) {
+  if (!rows || !rows.length) return { rows: [], newTracks: [] };
+
   let order = ["track", "title", "start", "end", "status", "owner", "note"];
   let bodyStart = 0;
-
-  const head = lines[0].split(delim).map((c) => c.trim());
+  const head = rows[0].map((c) => String(c == null ? "" : c).trim());
   if (head.some((c) => /軌道|任務|開始|結束|狀態|負責|備註/.test(c))) {
     bodyStart = 1;
-    order = head.map((c) => {
-      if (/軌道|分類/.test(c)) return "track";
-      if (/任務|項目|名稱/.test(c)) return "title";
-      if (/開始/.test(c)) return "start";
-      if (/結束|完成日/.test(c)) return "end";
-      if (/狀態/.test(c)) return "status";
-      if (/負責|owner/i.test(c)) return "owner";
-      if (/備註|說明|note/i.test(c)) return "note";
-      return null;
-    });
+    order = head.map(taskHeaderKey);
   }
 
   const trackByLabel = {};
   data.tracks.forEach((t, i) => (trackByLabel[t.label.trim()] = i));
   const newTracks = [];
-  const rows = [];
+  const out = [];
 
-  for (let li = bodyStart; li < lines.length; li++) {
-    const cells = lines[li].split(delim).map((c) => c.trim());
+  for (let li = bodyStart; li < rows.length; li++) {
+    const cells = (rows[li] || []).map((c) => String(c == null ? "" : c).trim());
+    if (!cells.some((c) => c !== "")) continue; // 跳過空白列
+
     const rec = { track: "", title: "", start: "", end: "", status: "", owner: "", note: "" };
     order.forEach((key, ci) => {
       if (key) rec[key] = cells[ci] == null ? "" : cells[ci];
@@ -1079,8 +1094,8 @@ function parseImportText(text) {
     else if (trackByLabel[rec.track] != null) trackIndex = trackByLabel[rec.track];
     else if (!newTracks.includes(rec.track)) newTracks.push(rec.track);
 
-    const s = coerceToISO(rec.start);
-    const e = coerceToISO(rec.end);
+    const s = cellToISO(rec.start);
+    const e = cellToISO(rec.end);
     if (!s.iso) errors.push(rec.start ? `開始日期「${rec.start}」無法辨識` : "缺少開始日期");
     if (!e.iso) errors.push(rec.end ? `結束日期「${rec.end}」無法辨識` : "缺少結束日期");
     if (s.iso && e.iso && parseISO(e.iso) < parseISO(s.iso)) errors.push("結束日期早於開始日期");
@@ -1091,7 +1106,7 @@ function parseImportText(text) {
       errors.push(`狀態「${rec.status}」無法辨識，會當成待辦`);
     }
 
-    rows.push({
+    out.push({
       line: li + 1,
       trackLabel: rec.track,
       trackIndex,
@@ -1107,7 +1122,11 @@ function parseImportText(text) {
     });
   }
 
-  return { rows, newTracks };
+  return { rows: out, newTracks };
+}
+
+function parseImportText(text) {
+  return parseTaskRows(parseDelimited(text));
 }
 
 function renderImportPreview() {
@@ -1209,6 +1228,331 @@ function applyImport() {
     [{ label: "知道了", run: () => dropBanner("import") }]
   );
 }
+
+/* ---------- Excel 範本下載 ---------- */
+
+const TASK_HEADERS = ["軌道", "任務名稱", "開始日期", "結束日期", "狀態", "負責人", "備註"];
+const MARKER_HEADERS = ["里程碑名稱", "日期", "強調（填「是」會反白）"];
+
+function safeFileName(s) {
+  return String(s || "專案").replace(/[\\/:*?"<>|]/g, "_").slice(0, 60);
+}
+
+function buildTemplateSheets() {
+  const trackList = data.tracks.map((t) => t.label).join("、") || "（這個專案還沒有軌道）";
+  const example = toISO(mondayOf(today()));
+  const exampleEnd = toISO(addDays(mondayOf(today()), 13));
+
+  const guide = [
+    ["專案排程追蹤 ・ Excel 範本填寫說明"],
+    [""],
+    ["1.", "在「任務」工作表填入排程，一列一個任務。範例列可以直接改掉或刪掉。"],
+    ["2.", "日期用 2026-09-01 這種格式，或直接用 Excel 的日期格式都可以，系統兩種都讀得懂。"],
+    ["3.", "「軌道」是任務的分類。填入目前沒有的軌道名稱，匯入時會自動建立新軌道。"],
+    ["4.", "「狀態」只能填 待辦 / 進行中 / 已完成。留空視為待辦。"],
+    ["5.", "「里程碑」工作表填階段節點（例如 Award、NPI、MP），會在甘特圖上畫垂直線。"],
+    ["", "　　這張工作表留空的話，原本的里程碑會保留不動。"],
+    ["6.", "「專案資訊」工作表可改專案名稱與說明。留空則沿用原本的。"],
+    ["7.", "填好後回到網站，點右上角「📤 匯入 Excel」上傳這個檔案。"],
+    ["8.", "上傳後會先顯示預覽，可選擇「新增到現有排程」或「取代整個排程」，確認後才會套用。"],
+    ["9.", "套用只在畫面上生效，還要按「儲存到 GitHub」才會真正存檔。"],
+    [""],
+    ["這個專案目前的軌道：", trackList],
+    ["注意：", "不要改動工作表名稱與標題列，系統靠它們辨識欄位。"],
+  ];
+
+  const info = [
+    ["欄位", "內容"],
+    ["專案名稱", data.project.name || ""],
+    ["專案說明", data.project.description || ""],
+  ];
+
+  const markers = [
+    MARKER_HEADERS,
+    ["Award", example, ""],
+    ["NPI", exampleEnd, "是"],
+  ];
+
+  const tasks = [
+    TASK_HEADERS,
+    ["產品", "DFM", example, exampleEnd, "進行中", "王小明", "這是範例列，請改成實際內容"],
+    ["包裝", "彩盒打樣", example, exampleEnd, "待辦", "", ""],
+  ];
+
+  return [
+    { name: "填寫說明", rows: guide, widths: [16, 92], headerRows: 1 },
+    { name: "專案資訊", rows: info, widths: [16, 60] },
+    { name: "里程碑", rows: markers, widths: [22, 14, 22] },
+    { name: "任務", rows: tasks, widths: [14, 30, 14, 14, 10, 12, 34] },
+  ];
+}
+
+$("tpl-download-btn").addEventListener("click", () => {
+  try {
+    const blob = buildXlsx(buildTemplateSheets());
+    downloadBlob(blob, `${safeFileName(data.project.name)}-排程範本.xlsx`);
+  } catch (e) {
+    alert(`產生範本失敗：${e.message}`);
+  }
+});
+
+/* ---------- Excel 範本上傳 ---------- */
+
+let uploadState = null;
+
+function parseMarkerRows(rows) {
+  if (!rows || !rows.length) return { rows: [], provided: false };
+  let bodyStart = 0;
+  const head = rows[0].map((c) => String(c == null ? "" : c).trim());
+  if (head.some((c) => /里程碑|名稱|日期|強調/.test(c))) bodyStart = 1;
+
+  const out = [];
+  for (let i = bodyStart; i < rows.length; i++) {
+    const cells = (rows[i] || []).map((c) => String(c == null ? "" : c).trim());
+    const [label, rawDate, hi] = [cells[0] || "", cells[1] || "", cells[2] || ""];
+    if (!label && !rawDate) continue;
+
+    const d = cellToISO(rawDate);
+    const errors = [];
+    if (!label) errors.push("缺少里程碑名稱");
+    if (!d.iso) errors.push(rawDate ? `日期「${rawDate}」無法辨識` : "缺少日期");
+
+    out.push({
+      line: i + 1,
+      label,
+      date: d.iso,
+      highlight: /^(是|y|yes|true|1|✓|v|o)$/i.test(hi),
+      errors,
+      fatal: errors.length > 0,
+    });
+  }
+  return { rows: out, provided: out.length > 0 };
+}
+
+async function loadUploadFile(file) {
+  let taskRows = [];
+  let markerRows = [];
+  const info = {};
+  const isXlsx = /\.xlsx$/i.test(file.name);
+
+  if (isXlsx) {
+    const sheets = await readXlsx(await file.arrayBuffer());
+    const pick = (re) => {
+      const key = Object.keys(sheets).find((n) => re.test(n));
+      return key ? sheets[key] : [];
+    };
+    taskRows = pick(/任務|task/i);
+    markerRows = pick(/里程碑|milestone/i);
+
+    pick(/專案資訊|專案|project.?info/i).forEach((r) => {
+      const k = String(r[0] || "").trim();
+      const v = String(r[1] || "").trim();
+      if (/名稱/.test(k)) info.name = v;
+      else if (/說明|描述/.test(k)) info.description = v;
+    });
+
+    // 找不到叫「任務」的工作表就退而用第一張有資料的
+    if (!taskRows.length) {
+      const first = Object.keys(sheets).find((n) => (sheets[n] || []).length > 1);
+      taskRows = first ? sheets[first] : [];
+    }
+  } else {
+    taskRows = parseDelimited(await file.text());
+  }
+
+  uploadState = {
+    fileName: file.name,
+    isXlsx,
+    tasks: parseTaskRows(taskRows),
+    markers: parseMarkerRows(markerRows),
+    info,
+  };
+  openUpload();
+}
+
+function openUpload() {
+  $("upload-modal").style.display = "flex";
+  renderUploadPreview();
+}
+
+function closeUpload() {
+  $("upload-modal").style.display = "none";
+}
+
+function renderUploadPreview() {
+  if (!uploadState) return;
+  const { fileName, isXlsx, tasks, markers, info } = uploadState;
+  const ok = tasks.rows.filter((r) => !r.fatal);
+  const bad = tasks.rows.filter((r) => r.fatal);
+  const okMarkers = markers.rows.filter((r) => !r.fatal);
+  const badMarkers = markers.rows.filter((r) => r.fatal);
+
+  $("upload-file").innerHTML = `檔案：<strong>${escapeHtml(fileName)}</strong>　<span class="hint inline">${
+    isXlsx ? "Excel 工作表" : "CSV / TSV 文字檔（只讀任務）"
+  }</span>`;
+
+  const notes = [];
+  if (tasks.newTracks.length) notes.push(`將新增 ${tasks.newTracks.length} 條軌道：${tasks.newTracks.join("、")}`);
+  if (markers.provided) {
+    notes.push(`里程碑會被檔案內容<strong>整批取代</strong>（${okMarkers.length} 個有效${badMarkers.length ? `，${badMarkers.length} 個有問題會略過` : ""}）`);
+  } else if (isXlsx) {
+    notes.push("「里程碑」工作表沒有資料，原本的里程碑保留不動");
+  }
+  if (info.name && info.name !== data.project.name) notes.push(`專案名稱會改成「${escapeHtml(info.name)}」`);
+  if (info.description && info.description !== data.project.description) notes.push("專案說明會被更新");
+  if (!ok.length) notes.push("沒有任何可匯入的任務，請檢查欄位與日期格式");
+
+  $("upload-summary").innerHTML = `
+    <div class="import-summary">可匯入 <strong>${ok.length}</strong> 個任務${
+    bad.length ? ` ・ <span class="bad">${bad.length} 列有問題會略過</span>` : ""
+  }</div>
+    ${notes.length ? `<ul class="import-notes">${notes.map((n) => `<li>${n}</li>`).join("")}</ul>` : ""}`;
+
+  const rowsHtml = tasks.rows
+    .slice(0, 25)
+    .map((r) => {
+      const days = r.start && r.end ? dayDiff(parseISO(r.end), parseISO(r.start)) + 1 : "—";
+      return `
+      <tr class="${r.fatal ? "row-bad" : r.errors.length ? "row-warn" : ""}">
+        <td>${r.line}</td>
+        <td>${escapeHtml(r.trackLabel)}${r.isNewTrack ? '<span class="tag-new">新軌道</span>' : ""}</td>
+        <td>${escapeHtml(r.title)}</td>
+        <td>${escapeHtml(r.start || "?")} ~ ${escapeHtml(r.end || "?")}</td>
+        <td>${days}${days === "—" ? "" : " 天"}</td>
+        <td>${STATUS_LABEL[r.status]}</td>
+        <td>${escapeHtml(r.owner)}</td>
+        <td>${escapeHtml(r.errors.join("；"))}</td>
+      </tr>`;
+    })
+    .join("");
+
+  const markerHtml = markers.rows.length
+    ? `<h4 class="preview-title">里程碑</h4>
+       <div class="import-table-scroll"><table class="import-table">
+       <tr><th>#</th><th>名稱</th><th>日期</th><th>強調</th><th>問題</th></tr>
+       ${markers.rows
+         .slice(0, 20)
+         .map(
+           (m) => `<tr class="${m.fatal ? "row-bad" : ""}"><td>${m.line}</td><td>${escapeHtml(m.label)}</td><td>${escapeHtml(
+             m.date || "?"
+           )}</td><td>${m.highlight ? "是" : ""}</td><td>${escapeHtml(m.errors.join("；"))}</td></tr>`
+         )
+         .join("")}
+       </table></div>`
+    : "";
+
+  $("upload-preview").innerHTML = `
+    ${
+      tasks.rows.length
+        ? `<h4 class="preview-title">任務${tasks.rows.length > 25 ? `（只顯示前 25 列，共 ${tasks.rows.length} 列）` : ""}</h4>
+           <div class="import-table-scroll"><table class="import-table">
+           <tr><th>#</th><th>軌道</th><th>任務</th><th>起訖</th><th>工期</th><th>狀態</th><th>負責人</th><th>問題</th></tr>
+           ${rowsHtml}</table></div>`
+        : ""
+    }
+    ${markerHtml}`;
+
+  $("upload-confirm").disabled = ok.length === 0 && !markers.provided && !info.name;
+}
+
+async function applyUpload() {
+  if (!uploadState) return;
+  const mode = document.querySelector("input[name='upload-mode']:checked").value;
+  const { tasks, markers, info } = uploadState;
+
+  closeUpload();
+
+  // 先進編輯模式，確保是在 GitHub 上的最新版本之上套用
+  if (!editMode) await enterEdit();
+
+  if (mode === "replace") {
+    data.tracks.forEach((t) => (t.tasks = []));
+  }
+
+  const labelToIndex = {};
+  data.tracks.forEach((t, i) => (labelToIndex[t.label.trim()] = i));
+  let createdTracks = 0;
+  tasks.newTracks.forEach((label) => {
+    if (labelToIndex[label] != null) return;
+    data.tracks.push({
+      key: `track-${data.tracks.length + 1}`,
+      label,
+      color: TRACK_COLORS[data.tracks.length % TRACK_COLORS.length],
+      tasks: [],
+    });
+    labelToIndex[label] = data.tracks.length - 1;
+    createdTracks++;
+  });
+
+  let added = 0;
+  tasks.rows.forEach((r) => {
+    if (r.fatal) return;
+    const ti = labelToIndex[r.trackLabel.trim()];
+    if (ti == null) return;
+    data.tracks[ti].tasks.push({
+      title: r.title,
+      start: r.start,
+      end: r.end,
+      status: r.status,
+      owner: r.owner,
+      note: r.note,
+      links: [],
+      baseline: null,
+      subtasks: [],
+    });
+    added++;
+  });
+
+  let markerCount = 0;
+  if (markers.provided) {
+    const valid = markers.rows.filter((m) => !m.fatal);
+    data.phaseMarkers = valid.map((m) => ({ label: m.label, date: m.date, highlight: m.highlight }));
+    markerCount = valid.length;
+  }
+
+  if (info.name) data.project.name = info.name;
+  if (info.description) data.project.description = info.description;
+
+  markDirty();
+  refreshView();
+  renderEditPanel();
+  scrollToToday();
+
+  const parts = [`匯入 <strong>${added}</strong> 個任務`];
+  if (mode === "replace") parts.push("並清掉原有任務");
+  if (createdTracks) parts.push(`新增 ${createdTracks} 條軌道`);
+  if (markerCount) parts.push(`套用 ${markerCount} 個里程碑`);
+  setBanner(
+    "upload",
+    "info",
+    `已${parts.join("、")}。<strong>尚未儲存</strong> —— 確認無誤後請按「儲存到 GitHub」。`,
+    [{ label: "知道了", run: () => dropBanner("upload") }]
+  );
+  uploadState = null;
+}
+
+$("tpl-upload-btn").addEventListener("click", () => $("tpl-file-input").click());
+
+$("tpl-file-input").addEventListener("change", async (e) => {
+  const file = e.target.files && e.target.files[0];
+  e.target.value = ""; // 清掉才能重複選同一個檔案
+  if (!file) return;
+  try {
+    await loadUploadFile(file);
+  } catch (err) {
+    alert(`讀取「${file.name}」失敗：${err.message}`);
+  }
+});
+
+$("upload-close").addEventListener("click", closeUpload);
+$("upload-cancel").addEventListener("click", closeUpload);
+$("upload-confirm").addEventListener("click", applyUpload);
+$("upload-modal").addEventListener("click", (e) => {
+  if (e.target.id === "upload-modal") closeUpload();
+});
+document.querySelectorAll("input[name='upload-mode']").forEach((el) =>
+  el.addEventListener("change", renderUploadPreview)
+);
 
 /* ---------- 編輯模式切換 ---------- */
 

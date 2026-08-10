@@ -1416,6 +1416,44 @@ footer {
 .import-table .row-bad { background: var(--danger-wash); }
 .import-table .row-warn { background: var(--soon-wash); }
 
+/* Excel 範本上傳 */
+
+.upload-file {
+  font-size: 0.82rem;
+  padding-bottom: 10px;
+  margin-bottom: 10px;
+  border-bottom: 1px solid var(--border);
+}
+
+.upload-mode {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px 12px;
+  margin: 12px 0;
+}
+
+.upload-mode legend {
+  font-size: 0.78rem;
+  color: var(--muted);
+  padding: 0 6px;
+}
+
+.radio-line {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 0.8rem;
+  padding: 4px 0;
+  cursor: pointer;
+}
+
+.radio-line input { margin-top: 3px; flex-shrink: 0; }
+
+.preview-title {
+  font-size: 0.8rem;
+  margin: 14px 0 6px;
+}
+
 .tag-new {
   margin-left: 5px;
   font-size: 0.64rem;

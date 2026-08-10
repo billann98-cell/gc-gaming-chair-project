@@ -20,6 +20,9 @@
           <button type="button" data-scale="week">週</button>
           <button type="button" data-scale="month">月</button>
         </div>
+        <button class="btn-secondary" id="tpl-download-btn" title="下載 Excel 範本，照著填寫後可直接匯入">📥 範本</button>
+        <button class="btn-secondary" id="tpl-upload-btn" title="上傳填好的 Excel 範本，產出專案排程">📤 匯入 Excel</button>
+        <input type="file" id="tpl-file-input" accept=".xlsx,.csv,.tsv,.txt" style="display:none;" />
         <button class="btn-secondary" id="baseline-view-btn" title="顯示或隱藏基準線對比">📏 基準線</button>
         <button class="btn-secondary" id="print-btn" title="列印或另存 PDF">🖨️ 列印</button>
         <button class="btn-secondary" id="edit-toggle-btn">✏️ 編輯</button>
@@ -82,7 +85,38 @@
     </div>
   </div>
 
+  <!-- 上傳 Excel 範本的預覽 -->
+  <div class="modal-overlay no-print" id="upload-modal" style="display:none;">
+    <div class="modal">
+      <div class="modal-head">
+        <h3>匯入 Excel 範本</h3>
+        <button class="btn-icon" id="upload-close">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="upload-file" id="upload-file"></div>
+        <div class="upload-summary" id="upload-summary"></div>
+        <fieldset class="upload-mode">
+          <legend>任務要怎麼帶入？</legend>
+          <label class="radio-line">
+            <input type="radio" name="upload-mode" value="append" checked />
+            <span><strong>新增到現有排程</strong>　保留目前的任務，把檔案裡的任務加進去</span>
+          </label>
+          <label class="radio-line">
+            <input type="radio" name="upload-mode" value="replace" />
+            <span><strong>取代整個排程</strong>　清掉目前所有任務，只留檔案裡的內容</span>
+          </label>
+        </fieldset>
+        <div class="upload-preview" id="upload-preview"></div>
+      </div>
+      <div class="modal-foot">
+        <button class="btn-secondary" id="upload-cancel">取消</button>
+        <button class="btn-primary" id="upload-confirm" disabled>確認匯入</button>
+      </div>
+    </div>
+  </div>
+
   <script src="utils.js"></script>
+  <script src="xlsx.js"></script>
   <script src="config.js"></script>
   <script src="templates.js"></script>
   <script src="project.js"></script>
