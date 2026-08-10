@@ -1,16 +1,57 @@
-function slugify(str) {
-  return str
-    .trim()
-    .toLowerCase()
-    .replace(/[^a-z0-9一-鿿]+/g, "-")
-    .replace(/^-+|-+$/g, "") || `project-${Date.now()}`;
+let indexData = { projects: [] };
+let projectDataById = {};
+let selectedTemplate = PROJECT_TEMPLATES[0].id;
+
+function $(id) {
+  return document.getElementById(id);
 }
 
-function escapeHtml(str) {
-  const div = document.createElement("div");
-  div.textContent = str;
-  return div.innerHTML;
+function slugify(str) {
+  return (
+    str
+      .trim()
+      .toLowerCase()
+      .replace(/[^a-z0-9一-鿿]+/g, "-")
+      .replace(/^-+|-+$/g, "") || `project-${Date.now()}`
+  );
 }
+
+/* ---------- 提示橫幅 ---------- */
+
+let banners = [];
+
+function setBanner(id, level, html, actions) {
+  banners = banners.filter((b) => b.id !== id);
+  banners.push({ id, level, html, actions: actions || [] });
+  renderBanners();
+}
+
+function dropBanner(id) {
+  banners = banners.filter((b) => b.id !== id);
+  renderBanners();
+}
+
+function renderBanners() {
+  const slot = $("banner-slot");
+  slot.innerHTML = banners
+    .map(
+      (b, i) => `
+      <div class="banner ${b.level}">
+        <div class="banner-text">${b.html}</div>
+        <div class="banner-actions">
+          ${b.actions
+            .map((a, j) => `<button class="btn-secondary btn-sm" data-banner="${i}" data-action="${j}">${escapeHtml(a.label)}</button>`)
+            .join("")}
+        </div>
+      </div>`
+    )
+    .join("");
+  slot.querySelectorAll("[data-banner]").forEach((el) =>
+    el.addEventListener("click", () => banners[+el.dataset.banner].actions[+el.dataset.action].run())
+  );
+}
+
+/* ---------- 載入 ---------- */
 
 async function loadIndex() {
   const res = await fetch(`projects/index.json?_=${Date.now()}`);
@@ -18,63 +59,25 @@ async function loadIndex() {
   return res.json();
 }
 
+// 單一專案讀取失敗不能拖垮整個列表
 async function loadProject(id) {
-  const res = await fetch(`projects/${id}.json?_=${Date.now()}`);
-  if (!res.ok) return null;
-  return res.json();
+  try {
+    const res = await fetch(`projects/${id}.json?_=${Date.now()}`);
+    if (!res.ok) return { error: `HTTP ${res.status}` };
+    return { data: migrateProject(await res.json()) };
+  } catch (e) {
+    return { error: e.message || "JSON 解析失敗" };
+  }
 }
 
-function parseDueDate(str) {
-  if (!str) return null;
-  const s = str.trim();
-  if (!s) return null;
-  const m = s.match(/^(\d{4})[\/\-](\d{1,2})[\/\-](\d{1,2})$/);
-  const d = m ? new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3])) : new Date(s);
-  return isNaN(d.getTime()) ? null : d;
-}
+/* ---------- 提醒 ---------- */
 
-function dayDiff(due, now) {
-  const a = new Date(due.getFullYear(), due.getMonth(), due.getDate());
-  const b = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  return Math.round((a - b) / 86400000);
-}
-
-function formatDate(d) {
-  return `${d.getFullYear()}/${String(d.getMonth() + 1).padStart(2, "0")}/${String(d.getDate()).padStart(2, "0")}`;
-}
-
-function severityFor(days) {
-  if (days < 0) return "overdue";
-  if (days <= 7) return "soon";
-  return "later";
-}
-
-function badgeLabel(days) {
-  if (days < 0) return `逾期 ${Math.abs(days)} 天`;
-  if (days === 0) return "今天到期";
-  if (days <= 7) return `${days} 天後到期`;
-  return `${days} 天後`;
-}
-
-function computeReminders(projects, projectDataById) {
+function computeReminders() {
   const out = [];
-  projects.forEach((p) => {
-    const proj = projectDataById[p.id];
-    if (!proj) return;
-    proj.tracks.forEach((track) => {
-      track.tasks.forEach((task) => {
-        if (task.status === "done") return;
-        const period = proj.periods[task.end - 1];
-        const due = period && parseDueDate(period.date);
-        if (!due) return;
-        out.push({ projectId: p.id, projectName: p.name, taskTitle: task.title, due });
-      });
-    });
-  });
-  const now = new Date();
-  out.forEach((r) => {
-    r.days = dayDiff(r.due, now);
-    r.severity = severityFor(r.days);
+  indexData.projects.forEach((p) => {
+    const entry = projectDataById[p.id];
+    if (!entry || !entry.data) return;
+    out.push(...projectReminders(p, entry.data));
   });
   out.sort((a, b) => a.due - b.due);
   return out;
@@ -89,12 +92,12 @@ function nearestDueByProject(reminders) {
 }
 
 function renderReminders(reminders) {
-  const slot = document.getElementById("reminders-slot");
+  const slot = $("reminders-slot");
   if (!reminders.length) {
     slot.innerHTML = `
       <div class="reminders">
         <div class="reminders-head"><h3>近期提醒</h3><span class="reminders-count">0</span></div>
-        <div class="reminders-empty">目前沒有設定日期的待辦項目 — 到專案的「編輯」填入 Period 日期後會顯示在這裡。</div>
+        <div class="reminders-empty">目前沒有可計算到期日的待辦項目 — 到專案的「編輯」→「期間」填入日期後會顯示在這裡。</div>
       </div>`;
     return;
   }
@@ -105,8 +108,8 @@ function renderReminders(reminders) {
       <a class="reminder-row" href="project.html?id=${encodeURIComponent(r.projectId)}">
         <span class="reminder-stripe ${r.severity}"></span>
         <span class="reminder-main">
-          <div class="reminder-task">${escapeHtml(r.taskTitle)}</div>
-          <div class="reminder-project">${escapeHtml(r.projectName)}</div>
+          <div class="reminder-task">${escapeHtml(r.taskTitle)}${r.owner ? `<span class="owner-chip">${escapeHtml(r.owner)}</span>` : ""}</div>
+          <div class="reminder-project">${escapeHtml(r.projectName)} ・ ${escapeHtml(r.trackLabel)}</div>
         </span>
         <span class="reminder-date">${formatDate(r.due)}</span>
         <span class="reminder-badge ${r.severity}">${badgeLabel(r.days)}</span>
@@ -117,21 +120,37 @@ function renderReminders(reminders) {
     reminders.length > shown.length
       ? `<div class="reminders-empty">還有 ${reminders.length - shown.length} 項未顯示</div>`
       : "";
+  const overdue = reminders.filter((r) => r.severity === "overdue").length;
   slot.innerHTML = `
     <div class="reminders">
-      <div class="reminders-head"><h3>近期提醒</h3><span class="reminders-count">${reminders.length} 項待辦</span></div>
+      <div class="reminders-head">
+        <h3>近期提醒</h3>
+        <span class="reminders-count">${reminders.length} 項待辦${overdue ? ` ・ ${overdue} 項逾期` : ""}</span>
+      </div>
       ${rows}${more}
     </div>`;
 }
 
-function renderList(projects, nearest) {
-  const el = document.getElementById("project-list");
+/* ---------- 專案卡片 ---------- */
+
+function renderList(nearest) {
+  const el = $("project-list");
+  const projects = indexData.projects;
   if (!projects.length) {
     el.innerHTML = `<p class="empty">還沒有專案，點下方「+ 新增專案」建立第一個。</p>`;
     return;
   }
   el.innerHTML = projects
     .map((p) => {
+      const entry = projectDataById[p.id] || {};
+      if (entry.error) {
+        return `
+        <a class="project-card broken" href="project.html?id=${encodeURIComponent(p.id)}">
+          <div class="project-card-name">${escapeHtml(p.name)}</div>
+          <div class="project-card-desc bad">⚠ 資料讀取失敗：${escapeHtml(entry.error)}</div>
+        </a>`;
+      }
+      const agg = aggregateProgress(allTasks(entry.data));
       const r = nearest[p.id];
       const dueHtml = r
         ? `<div class="card-due ${r.severity}"><span class="dot"></span>${escapeHtml(r.taskTitle)} · ${formatDate(r.due)}</div>`
@@ -140,29 +159,137 @@ function renderList(projects, nearest) {
       <a class="project-card" href="project.html?id=${encodeURIComponent(p.id)}">
         <div class="project-card-name">${escapeHtml(p.name)}</div>
         <div class="project-card-desc">${escapeHtml(p.description || "")}</div>
+        <div class="card-progress">
+          <div class="progress-bar"><div class="progress-fill" style="width:${agg.pct}%"></div></div>
+          <span class="progress-text">${agg.pct}% ・ ${agg.done}/${agg.total}</span>
+        </div>
         ${dueHtml}
+        <div class="card-updated" data-updated="${escapeHtml(p.id)}"></div>
       </a>`;
     })
     .join("");
 }
 
-async function init() {
+// G2：每張卡片顯示最後更新者與時間
+async function loadCardUpdates() {
+  const slots = [...document.querySelectorAll("[data-updated]")];
+  await Promise.all(
+    slots.map(async (slot) => {
+      try {
+        const c = await ghLatestCommit(`projects/${slot.dataset.updated}.json`);
+        if (!c) return;
+        const when = c.date ? new Date(c.date) : null;
+        slot.textContent = `${c.author}${when ? ` ・ ${formatDate(when)}` : ""} 更新`;
+      } catch (e) {
+        /* 讀不到就留白 */
+      }
+    })
+  );
+}
+
+/* ---------- 新增專案（F3 + A5） ---------- */
+
+function renderTemplateList() {
+  $("template-list").innerHTML = PROJECT_TEMPLATES.map(
+    (t) => `
+    <label class="template-option${t.id === selectedTemplate ? " selected" : ""}">
+      <input type="radio" name="template" value="${t.id}" ${t.id === selectedTemplate ? "checked" : ""} />
+      <span class="template-name">${escapeHtml(t.name)}</span>
+      <span class="template-summary">${escapeHtml(t.summary)}</span>
+    </label>`
+  ).join("");
+  $("template-list")
+    .querySelectorAll("input[name='template']")
+    .forEach((el) =>
+      el.addEventListener("change", () => {
+        selectedTemplate = el.value;
+        renderTemplateList();
+      })
+    );
+}
+
+function openNewModal() {
+  $("new-modal").style.display = "flex";
+  $("new-name").value = "";
+  $("new-desc").value = "";
+  $("new-name-error").style.display = "none";
+  selectedTemplate = PROJECT_TEMPLATES[0].id;
+  renderTemplateList();
+  $("new-name").focus();
+}
+
+function closeNewModal() {
+  $("new-modal").style.display = "none";
+}
+
+function showNameError(msg) {
+  const el = $("new-name-error");
+  el.textContent = msg;
+  el.style.display = msg ? "block" : "none";
+}
+
+async function createProject() {
+  const name = $("new-name").value.trim();
+  const description = $("new-desc").value.trim();
+  if (!name) {
+    showNameError("請填入專案名稱。");
+    return;
+  }
+  const id = slugify(name);
+
+  // A5：舊版直接覆寫同名專案的檔案，資料會不見。這裡先擋掉。
+  if (indexData.projects.some((p) => p.id === id)) {
+    showNameError(`已經有一個專案的代號是「${id}」，請換一個名稱，否則會覆蓋既有專案。`);
+    return;
+  }
+
+  const btn = $("new-create");
+  btn.disabled = true;
+  btn.textContent = "檢查中…";
   try {
-    const { projects } = await loadIndex();
-    const projectDatas = await Promise.all(projects.map((p) => loadProject(p.id)));
-    const projectDataById = {};
-    projects.forEach((p, i) => {
-      projectDataById[p.id] = projectDatas[i];
-    });
-    const reminders = computeReminders(projects, projectDataById);
-    renderReminders(reminders);
-    renderList(projects, nearestDueByProject(reminders));
+    const existing = await ghGetFile(`projects/${id}.json`);
+    if (!existing.missing) {
+      showNameError(`GitHub 上已經有 projects/${id}.json，請換一個名稱以免覆蓋。`);
+      return;
+    }
+
+    btn.textContent = "建立中…";
+    const project = buildProjectFromTemplate(selectedTemplate, name, description);
+    await ghPutFile(`projects/${id}.json`, project, null, `Create project: ${name}`);
+
+    // 專案檔已建立；清單若寫入失敗要明確告知，不要留下看不見的孤兒檔（A8）
+    try {
+      const idx = await ghGetFile("projects/index.json");
+      const current = idx.json || { projects: [] };
+      current.projects.push({ id, name, description });
+      await ghPutFile("projects/index.json", current, idx.sha, `Add project to index: ${name}`);
+    } catch (e) {
+      closeNewModal();
+      setBanner(
+        "orphan",
+        "warn",
+        `專案檔 <code>projects/${escapeHtml(id)}.json</code> 已建立，但寫入專案清單失敗（${escapeHtml(e.message)}）。
+         它暫時不會出現在列表中，可以直接用連結開啟，或重新整理後再試一次。`,
+        [
+          { label: "直接開啟", run: () => (window.location.href = `project.html?id=${encodeURIComponent(id)}`) },
+          { label: "知道了", run: () => dropBanner("orphan") },
+        ]
+      );
+      return;
+    }
+
+    window.location.href = `project.html?id=${encodeURIComponent(id)}`;
   } catch (e) {
-    document.getElementById("project-list").innerHTML = `<p class="empty">${escapeHtml(e.message)}</p>`;
+    showNameError(`建立失敗：${e.message}`);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = "建立專案";
   }
 }
 
-document.getElementById("token-btn").addEventListener("click", () => {
+/* ---------- 事件 ---------- */
+
+$("token-btn").addEventListener("click", () => {
   const current = getToken();
   const next = window.prompt(
     "貼上 GitHub Personal Access Token（留空並確定可清除已儲存的 token）：",
@@ -173,48 +300,44 @@ document.getElementById("token-btn").addEventListener("click", () => {
   alert(next.trim() ? "Token 已儲存於本機瀏覽器" : "Token 已清除");
 });
 
-document.getElementById("new-project-btn").addEventListener("click", async () => {
-  const name = window.prompt("新專案名稱：");
-  if (!name) return;
-  const description = window.prompt("專案說明（可留空）：") || "";
-  const id = slugify(name);
-
-  const template = {
-    project: { name, description },
-    periods: Array.from({ length: 8 }, (_, i) => ({ index: i + 1, date: "" })),
-    phaseMarkers: [
-      { label: "Award", line: 1 },
-      { label: "TS", line: 3 },
-      { label: "T0 / T1", line: 5 },
-      { label: "Pre-NPI", line: 5, highlight: true },
-      { label: "T2", line: 6 },
-      { label: "NPI", line: 7, highlight: true },
-      { label: "MP", line: 8 },
-      { label: "1st lot ETD", line: 9 },
-    ],
-    tracks: [
-      { key: "product", label: "產品", color: "orange", tasks: [] },
-      { key: "packaging", label: "包裝", color: "slate", tasks: [] },
-      { key: "certification", label: "認證", color: "rust", tasks: [] },
-      { key: "marketing", label: "行銷素材", color: "olive", tasks: [] },
-    ],
-  };
-
-  const btn = document.getElementById("new-project-btn");
-  btn.disabled = true;
-  btn.textContent = "建立中...";
-  try {
-    await saveJsonFile(`projects/${id}.json`, template, `Create project: ${name}`);
-    const current = await loadIndex();
-    current.projects.push({ id, name, description });
-    await saveJsonFile("projects/index.json", current, `Add project to index: ${name}`);
-    window.location.href = `project.html?id=${encodeURIComponent(id)}`;
-  } catch (e) {
-    alert(`建立失敗：${e.message}`);
-  } finally {
-    btn.disabled = false;
-    btn.textContent = "+ 新增專案";
-  }
+$("new-project-btn").addEventListener("click", openNewModal);
+$("new-close").addEventListener("click", closeNewModal);
+$("new-cancel").addEventListener("click", closeNewModal);
+$("new-create").addEventListener("click", createProject);
+$("new-name").addEventListener("input", () => showNameError(""));
+$("new-modal").addEventListener("click", (e) => {
+  if (e.target.id === "new-modal") closeNewModal();
 });
+
+/* ---------- 啟動 ---------- */
+
+async function init() {
+  try {
+    indexData = await loadIndex();
+    if (!Array.isArray(indexData.projects)) indexData.projects = [];
+  } catch (e) {
+    $("project-list").innerHTML = `<p class="empty">${escapeHtml(e.message)}</p>`;
+    return;
+  }
+
+  const results = await Promise.all(indexData.projects.map((p) => loadProject(p.id)));
+  projectDataById = {};
+  indexData.projects.forEach((p, i) => (projectDataById[p.id] = results[i]));
+
+  const broken = indexData.projects.filter((p) => projectDataById[p.id].error);
+  if (broken.length) {
+    setBanner(
+      "broken",
+      "warn",
+      `有 ${broken.length} 個專案的資料讀不到或格式錯誤：${broken.map((b) => escapeHtml(b.name)).join("、")}。其他專案照常顯示。`,
+      [{ label: "知道了", run: () => dropBanner("broken") }]
+    );
+  }
+
+  const reminders = computeReminders();
+  renderReminders(reminders);
+  renderList(nearestDueByProject(reminders));
+  loadCardUpdates();
+}
 
 init();

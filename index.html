@@ -9,25 +9,59 @@
 <body>
   <div class="container">
     <header class="dash-header">
-      <div>
+      <div class="header-main">
         <h1>專案排程追蹤</h1>
         <p class="desc">選擇一個專案查看排程，或建立新專案</p>
       </div>
-      <button class="btn-secondary" id="token-btn">🔑 GitHub Token</button>
+      <div class="header-actions no-print">
+        <button class="btn-secondary" id="token-btn">🔑 GitHub Token</button>
+      </div>
     </header>
+
+    <div class="banner-slot no-print" id="banner-slot"></div>
 
     <div id="reminders-slot"></div>
 
     <div class="project-list" id="project-list"></div>
 
-    <button class="btn-primary" id="new-project-btn">+ 新增專案</button>
+    <button class="btn-primary no-print" id="new-project-btn">+ 新增專案</button>
 
     <footer>
       資料存放在 <code>projects/</code> 資料夾 ・ 需要 GitHub Token 才能新增/編輯
     </footer>
   </div>
 
+  <!-- F3：新增專案（含範本選擇） -->
+  <div class="modal-overlay no-print" id="new-modal" style="display:none;">
+    <div class="modal">
+      <div class="modal-head">
+        <h3>新增專案</h3>
+        <button class="btn-icon" id="new-close">✕</button>
+      </div>
+      <div class="modal-body">
+        <label class="field-block">專案名稱
+          <input type="text" id="new-name" placeholder="例如：ROG 電競椅 2027" />
+        </label>
+        <div class="field-error" id="new-name-error" style="display:none;"></div>
+
+        <label class="field-block">專案說明（可留空）
+          <input type="text" id="new-desc" placeholder="Award → 1st lot ETD 產品開發排程" />
+        </label>
+
+        <div class="field-block">選擇範本
+          <div class="template-list" id="template-list"></div>
+        </div>
+      </div>
+      <div class="modal-foot">
+        <button class="btn-secondary" id="new-cancel">取消</button>
+        <button class="btn-primary" id="new-create">建立專案</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="utils.js"></script>
   <script src="config.js"></script>
+  <script src="templates.js"></script>
   <script src="dashboard.js"></script>
 </body>
 </html>
