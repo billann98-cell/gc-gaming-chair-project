@@ -14,6 +14,7 @@ let timeline = null;    // buildTimeline() 的結果，渲染與拖拉共用
 let scale = "week";
 let migrationInfo = null;
 let importState = { rows: [], newTracks: [] };
+let suppressClickUntil = 0; // 拖拉結束後短暫忽略 click，避免被當成點擊跳轉
 
 /* ---------- 小工具 ---------- */
 
@@ -204,6 +205,7 @@ function taskTooltip(track, task) {
   if (bd) lines.push(`對比基準線：${bd.text}`);
   if (task.note) lines.push(`備註：${task.note}`);
   if ((task.links || []).length) lines.push(`連結：${task.links.length} 個`);
+  lines.push("— 點一下可直接跳到這個任務的編輯欄位");
   return lines.join("\n");
 }
 
@@ -372,6 +374,7 @@ function renderGantt() {
         });
         attachDrag(bar, task, ti, tj, chartCol);
       }
+      attachJumpToEditor(bar, ti, tj);
 
       row.appendChild(bar);
       rows.appendChild(row);
@@ -415,6 +418,48 @@ function refreshView() {
   renderHeader();
   renderGantt();
   refreshValidation();
+}
+
+/* ---------- 點長條直接跳到編輯欄位 ---------- */
+
+// 專案任務一多，要在編輯面板裡翻很久才找到某一項。點長條就直接帶過去。
+function attachJumpToEditor(bar, ti, tj) {
+  bar.tabIndex = 0;
+  bar.setAttribute("role", "button");
+
+  bar.addEventListener("click", (e) => {
+    if (e.target.dataset.handle) return; // 拖拉把手不觸發跳轉
+    // 拖拉結束後瀏覽器仍會補一個 click，那不是點擊意圖
+    if (performance.now() < suppressClickUntil) return;
+    jumpToTaskEditor(ti, tj);
+  });
+
+  bar.addEventListener("keydown", (e) => {
+    if (e.key !== "Enter" && e.key !== " ") return;
+    e.preventDefault();
+    jumpToTaskEditor(ti, tj);
+  });
+}
+
+async function jumpToTaskEditor(ti, tj) {
+  if (!editMode) await enterEdit(); // 順便省掉先按「編輯」的步驟
+
+  const item = document.querySelector(`[data-task-item="${ti}-${tj}"]`);
+  if (!item) return;
+
+  const details = item.querySelector("details");
+  if (details) details.open = true;
+
+  item.scrollIntoView({ behavior: "smooth", block: "center" });
+
+  // 一次只反白一項，並在動畫結束後把 class 清掉，避免愈點愈多殘留
+  document.querySelectorAll(".task-edit-item.flash").forEach((el) => el.classList.remove("flash"));
+  void item.offsetWidth; // 強制重排，連續點同一項時動畫才會重播
+  item.classList.add("flash");
+  item.addEventListener("animationend", () => item.classList.remove("flash"), { once: true });
+
+  const titleInput = item.querySelector("[data-kind='task-title']");
+  if (titleInput) titleInput.focus({ preventScroll: true });
 }
 
 /* ---------- 拖拉調整（以天為單位） ---------- */
@@ -478,6 +523,9 @@ function attachDrag(bar, task, ti, tj, chartEl) {
       bar.classList.remove("dragging");
       hint.remove();
       if (dayDiff(ns, os) !== 0 || dayDiff(ne, oe) !== 0) {
+        // 用時間戳而不是把旗標存在長條上：refreshView() 會整段重建 DOM，
+        // 存在元素上的旗標會跟著元素一起消失。
+        suppressClickUntil = performance.now() + 300;
         task.start = toISO(ns);
         task.end = toISO(ne);
         markDirty();
@@ -582,7 +630,7 @@ function renderEditPanel() {
             .join("");
 
           return `
-        <div class="task-edit-item">
+        <div class="task-edit-item" data-task-item="${ti}-${tj}">
           <div class="task-edit-row">
             <input type="text" data-kind="task-title" data-track="${ti}" data-task="${tj}" value="${escapeHtml(task.title)}" placeholder="任務名稱" />
             <input type="text" class="owner-input" data-kind="task-owner" data-track="${ti}" data-task="${tj}" value="${escapeHtml(task.owner || "")}" placeholder="負責人" />

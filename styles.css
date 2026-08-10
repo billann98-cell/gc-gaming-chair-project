@@ -631,6 +631,29 @@ footer {
 
 .task-edit-item {
   margin-bottom: 8px;
+  padding: 6px 8px;
+  border-radius: 8px;
+}
+
+/* 從甘特圖點長條跳過來時，短暫反白讓眼睛找得到位置 */
+.task-edit-item.flash {
+  animation: flash-item 1.8s ease-out;
+}
+
+@keyframes flash-item {
+  0%, 30% {
+    background: var(--soon-wash);
+    box-shadow: inset 0 0 0 2px var(--soon);
+  }
+  100% {
+    background: transparent;
+    box-shadow: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .task-edit-item.flash { animation-duration: 0.01s; }
+  .task-bar { transition: none; }
 }
 
 .subtask-details {
@@ -877,6 +900,16 @@ footer {
 .task-bar {
   display: flex;
   align-items: center;
+  cursor: pointer; /* 點一下跳到編輯欄位 */
+}
+
+.task-bar:hover {
+  filter: brightness(1.08);
+}
+
+.task-bar:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
 }
 
 .bar-fill {
