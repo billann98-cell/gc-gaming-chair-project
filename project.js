@@ -241,15 +241,20 @@ function renderGantt() {
     })
     .join("");
 
-  // 里程碑標籤：依日期定位，靠邊時調整對齊避免被切掉
+  // 里程碑標籤：依日期定位，靠邊時調整對齊避免被切掉。
+  // 名稱下面直接標出日期，不必滑上去看 tooltip 才知道 NPI 是哪一天。
   $("marker-row").innerHTML = (data.phaseMarkers || [])
     .map((m) => {
+      const d = parseISO(m.date);
       const p = datePct(m.date, tl);
-      if (p === null) return "";
+      if (p === null || !d) return "";
       const align = p < 4 ? "start" : p > 96 ? "end" : "mid";
       return `<div class="marker ${m.highlight ? "highlight" : "normal"}" data-align="${align}" style="left:${pct(p)}" title="${escapeHtml(
-        m.label + " ・ " + formatDate(parseISO(m.date))
-      )}">${escapeHtml(m.label)}</div>`;
+        m.label + " ・ " + formatDate(d) + weekdayLabel(d)
+      )}">
+        <span class="marker-label">${escapeHtml(m.label)}</span>
+        <span class="marker-date">${escapeHtml(formatDateShort(d))}</span>
+      </div>`;
     })
     .join("");
 

@@ -106,6 +106,13 @@ function formatDateShort(d) {
   return `${d.getMonth() + 1}/${d.getDate()}`;
 }
 
+const WEEKDAYS = ["日", "一", "二", "三", "四", "五", "六"];
+
+// 里程碑落在週末很重要，tooltip 裡一併標出星期
+function weekdayLabel(d) {
+  return `（週${WEEKDAYS[d.getDay()]}）`;
+}
+
 function severityFor(days) {
   if (days < 0) return "overdue";
   if (days <= 7) return "soon";
@@ -508,6 +515,7 @@ if (typeof module !== "undefined" && module.exports) {
     mondayOf,
     formatDate,
     formatDateShort,
+    weekdayLabel,
     severityFor,
     badgeLabel,
     taskDays,

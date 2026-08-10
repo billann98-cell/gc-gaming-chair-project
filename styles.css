@@ -157,14 +157,30 @@ header p.desc {
 .marker {
   position: absolute;
   transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  line-height: 1.25;
   font-size: 0.72rem;
   font-weight: 600;
   color: var(--muted);
   white-space: nowrap;
 }
 
+.marker-label { font-weight: 700; }
+
+/* 日期是這裡的重點資訊，給它比名稱更明確的顏色 */
+.marker-date {
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: var(--text);
+  opacity: 0.75;
+}
+
+/* 名稱＋日期變成兩行，所以分成三條車道：
+   一般里程碑 / 反白里程碑 / 今天旗標，避免互相重疊 */
 .marker.normal { top: 2px; }
-.marker.highlight { top: 22px; }
+.marker.highlight { top: 36px; }
 
 /* 里程碑依日期定位，靠邊時改變對齊方式避免標籤被切掉 */
 .marker[data-align="start"] { transform: translateX(0); }
@@ -864,7 +880,7 @@ footer {
 
 /* 今天線（D1）。marker-row 加高分成三條車道：一般里程碑 / 反白里程碑 / 今天 */
 
-.marker-row { height: 62px; }
+.marker-row { height: 96px; }
 
 .today-line {
   position: absolute;
@@ -877,7 +893,7 @@ footer {
 
 .today-flag {
   position: absolute;
-  top: 42px;
+  top: 72px;
   left: 0;
   transform: translateX(-50%);
   white-space: nowrap;
