@@ -9,18 +9,23 @@
 <body>
   <div class="container">
     <header class="dash-header">
-      <div>
-        <p class="back-link"><a href="index.html">← 所有專案</a></p>
+      <div class="header-main">
+        <p class="back-link no-print"><a href="index.html">← 所有專案</a></p>
         <h1 id="project-name">專案名稱</h1>
         <p class="desc" id="project-desc">專案說明</p>
+        <div class="project-progress" id="project-progress"></div>
       </div>
-      <div class="header-actions">
+      <div class="header-actions no-print">
+        <button class="btn-secondary" id="baseline-view-btn" title="顯示或隱藏基準線對比">📏 基準線</button>
+        <button class="btn-secondary" id="print-btn" title="列印或另存 PDF">🖨️ 列印</button>
         <button class="btn-secondary" id="edit-toggle-btn">✏️ 編輯</button>
         <button class="btn-primary" id="save-btn" style="display:none;">儲存到 GitHub</button>
       </div>
     </header>
 
-    <div class="gantt-scroll">
+    <div class="banner-slot no-print" id="banner-slot"></div>
+
+    <div class="gantt-scroll" id="gantt-scroll">
       <div class="gantt">
         <div class="gantt-corner"></div>
         <div class="gantt-head">
@@ -36,16 +41,49 @@
       <div class="legend-item"><span class="legend-swatch done"></span>已完成</div>
       <div class="legend-item"><span class="legend-swatch in-progress"></span>進行中</div>
       <div class="legend-item"><span class="legend-swatch upcoming"></span>待辦</div>
+      <div class="legend-item"><span class="legend-swatch today"></span>今天</div>
+      <div class="legend-item legend-baseline" style="display:none;"><span class="legend-swatch baseline"></span>基準線</div>
+      <div class="legend-note" id="today-note"></div>
     </div>
 
-    <div class="edit-panel" id="edit-panel" style="display:none;"></div>
+    <div class="edit-panel no-print" id="edit-panel" style="display:none;"></div>
 
     <footer>
-      資料來源：<code id="project-file-path"></code>
+      <div>資料來源：<code id="project-file-path"></code></div>
+      <div class="last-updated" id="last-updated"></div>
     </footer>
   </div>
 
+  <!-- F1：從 Excel 貼上匯入 -->
+  <div class="modal-overlay no-print" id="import-modal" style="display:none;">
+    <div class="modal">
+      <div class="modal-head">
+        <h3>從 Excel 貼上匯入任務</h3>
+        <button class="btn-icon" id="import-close">✕</button>
+      </div>
+      <div class="modal-body">
+        <p class="modal-hint">
+          在 Excel 選取範圍後複製，直接貼到下面。第一列可以是標題列，欄位順序：
+          <code>軌道　任務名稱　開始期間　結束期間　狀態　負責人　備註</code><br />
+          狀態可填「待辦 / 進行中 / 已完成」，負責人與備註可留空。
+        </p>
+        <textarea id="import-textarea" rows="8" placeholder="產品&#9;DFM&#9;2&#9;3&#9;待辦&#9;王小明&#9;含結構件"></textarea>
+        <label class="checkbox-line">
+          <input type="checkbox" id="import-extend-periods" checked />
+          期間不足時自動增加期間
+        </label>
+        <div class="import-preview" id="import-preview"></div>
+      </div>
+      <div class="modal-foot">
+        <button class="btn-secondary" id="import-cancel">取消</button>
+        <button class="btn-primary" id="import-confirm" disabled>確認匯入</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="utils.js"></script>
   <script src="config.js"></script>
+  <script src="templates.js"></script>
   <script src="project.js"></script>
 </body>
 </html>
