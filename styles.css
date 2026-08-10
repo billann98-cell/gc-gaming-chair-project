@@ -81,16 +81,16 @@ header p.desc {
   min-width: 900px;
 }
 
-.marker-lines {
+/* 里程碑虛線與今天線的覆蓋層。只覆蓋圖表區（不含表頭），
+   所以垂直線不會穿過里程碑名稱、月份與週次刻度這些文字。 */
+.chart-overlay {
   position: absolute;
-  top: 0;
-  left: 170px;
-  right: 0;
-  bottom: 0;
+  inset: 0;
   pointer-events: none;
+  z-index: 4;
 }
 
-.marker-lines .marker-line {
+.chart-overlay .marker-line {
   position: absolute;
   top: 0;
   bottom: 0;
@@ -98,7 +98,7 @@ header p.desc {
   border-left: 1px dashed var(--border);
 }
 
-.marker-lines .marker-line.highlight {
+.chart-overlay .marker-line.highlight {
   border-left: 2px dashed var(--highlight-line);
 }
 
@@ -894,7 +894,6 @@ footer {
 .today-flag {
   position: absolute;
   top: 72px;
-  left: 0;
   transform: translateX(-50%);
   white-space: nowrap;
   font-size: 0.66rem;

@@ -258,18 +258,15 @@ function renderGantt() {
     })
     .join("");
 
-  // 里程碑垂直線 + 今天線
-  const lines = (data.phaseMarkers || [])
-    .map((m) => {
-      const p = datePct(m.date, tl);
-      return p === null ? "" : `<div class="marker-line${m.highlight ? " highlight" : ""}" style="left:${pct(p)}"></div>`;
-    })
-    .join("");
+  // 今天旗標和里程碑名稱一樣屬於「文字」，放在表頭的第三條車道，
+  // 垂直線則另外畫在圖表區裡（見下方 chart-overlay），才不會蓋到文字。
   const tp = todayPosition(tl);
-  const todayLine = tp.inRange
-    ? `<div class="today-line" style="left:${pct(tp.pct)}"><span class="today-flag">今天 ${formatDateShort(tp.date)}</span></div>`
-    : "";
-  $("marker-lines").innerHTML = lines + todayLine;
+  if (tp.inRange) {
+    $("marker-row").insertAdjacentHTML(
+      "beforeend",
+      `<div class="today-flag" style="left:${pct(tp.pct)}">今天 ${formatDateShort(tp.date)}</div>`
+    );
+  }
   $("today-note").textContent = tp.inRange ? "" : `今天（${formatDate(tp.date)}）不在這個專案的排程範圍內`;
 
   // 主體
@@ -386,6 +383,19 @@ function renderGantt() {
     });
     chartCol.appendChild(rows);
   });
+
+  // 里程碑虛線與今天線：畫成圖表區的覆蓋層，最後才加所以會在長條之上，
+  // 但因為只佔圖表區高度，不會延伸到表頭去蓋住里程碑名稱與日期刻度。
+  const overlay = document.createElement("div");
+  overlay.className = "chart-overlay";
+  overlay.innerHTML =
+    (data.phaseMarkers || [])
+      .map((m) => {
+        const p = datePct(m.date, tl);
+        return p === null ? "" : `<div class="marker-line${m.highlight ? " highlight" : ""}" style="left:${pct(p)}"></div>`;
+      })
+      .join("") + (tp.inRange ? `<div class="today-line" style="left:${pct(tp.pct)}"></div>` : "");
+  chartCol.appendChild(overlay);
 
   bodyEl.innerHTML = "";
   bodyEl.appendChild(labelCol);
