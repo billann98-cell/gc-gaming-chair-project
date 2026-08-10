@@ -1,14 +1,15 @@
-/* F3：專案範本庫。新增專案時可挑選，省去每次從零建立軌道與里程碑。 */
+/* 專案範本庫。範本用「相對週期」描述，建立專案時再依選定的起始日期換算成實際日期。 */
+
+const TEMPLATE_PERIOD_DAYS = 14; // 原本的硬體排程是一期兩週
 
 const PROJECT_TEMPLATES = [
   {
     id: "blank",
     name: "空白專案",
-    summary: "8 個期間、四條空軌道，自己從頭排",
+    summary: "四條空軌道，自己從頭排",
     build() {
       return {
-        periods: 8,
-        phaseMarkers: [],
+        markers: [],
         tracks: [
           { key: "product", label: "產品", color: "orange", tasks: [] },
           { key: "packaging", label: "包裝", color: "slate", tasks: [] },
@@ -21,21 +22,21 @@ const PROJECT_TEMPLATES = [
   {
     id: "hardware",
     name: "硬體開發排程",
-    summary: "Award → 1st lot ETD 完整 8 期範本，含四軌道 31 項任務與階段里程碑",
+    summary: "Award → 1st lot ETD 共 16 週，四軌道 31 項任務與 8 個階段里程碑",
     build() {
-      const t = (title, start, end, extra) =>
-        Object.assign({ title, start, end, status: "upcoming" }, extra || {});
+      // s / e 沿用原本的「第幾期」寫法，讀起來對得上既有排程表；
+      // 實際日期由 buildProjectFromTemplate 依起始日換算。
+      const t = (title, s, e, extra) => Object.assign({ title, s, e }, extra || {});
       return {
-        periods: 8,
-        phaseMarkers: [
-          { label: "Award", line: 1 },
-          { label: "TS", line: 3 },
-          { label: "T0 / T1", line: 5 },
-          { label: "Pre-NPI", line: 5, highlight: true },
-          { label: "T2", line: 6 },
-          { label: "NPI", line: 7, highlight: true },
-          { label: "MP", line: 8 },
-          { label: "1st lot ETD", line: 9 },
+        markers: [
+          { label: "Award", period: 1 },
+          { label: "TS", period: 3 },
+          { label: "T0 / T1", period: 5 },
+          { label: "Pre-NPI", period: 5, highlight: true },
+          { label: "T2", period: 6 },
+          { label: "NPI", period: 7, highlight: true },
+          { label: "MP", period: 8 },
+          { label: "1st lot ETD", period: 9 },
         ],
         tracks: [
           {
@@ -114,13 +115,40 @@ function getTemplate(id) {
   return PROJECT_TEMPLATES.find((t) => t.id === id) || PROJECT_TEMPLATES[0];
 }
 
-// 依範本產生一份完整的專案資料（已經是 schemaVersion 2 的形狀）
-function buildProjectFromTemplate(templateId, name, description) {
+// 第 n 期的起點（n 從 1 起算）
+function periodStart(start, n) {
+  return addDays(start, (n - 1) * TEMPLATE_PERIOD_DAYS);
+}
+
+// 依範本與起始日期產生一份完整的 schemaVersion 3 專案資料
+function buildProjectFromTemplate(templateId, name, description, startISO) {
   const spec = getTemplate(templateId).build();
+  const start = parseISO(startISO) || mondayOf(today());
+
   return migrateProject({
+    schemaVersion: SCHEMA_VERSION,
     project: { name, description },
-    periods: Array.from({ length: spec.periods }, (_, i) => ({ index: i + 1, date: "" })),
-    phaseMarkers: spec.phaseMarkers,
-    tracks: spec.tracks,
+    phaseMarkers: spec.markers.map((m) => ({
+      label: m.label,
+      date: toISO(periodStart(start, m.period)),
+      highlight: !!m.highlight,
+    })),
+    tracks: spec.tracks.map((tr) => ({
+      key: tr.key,
+      label: tr.label,
+      color: tr.color,
+      tasks: tr.tasks.map((task) => ({
+        title: task.title,
+        start: toISO(periodStart(start, task.s)),
+        // 第 e 期的最後一天 = 第 e+1 期起點的前一天
+        end: toISO(addDays(periodStart(start, task.e + 1), -1)),
+        status: "upcoming",
+        owner: "",
+        note: "",
+        links: [],
+        baseline: null,
+        subtasks: task.subtasks || [],
+      })),
+    })),
   });
 }

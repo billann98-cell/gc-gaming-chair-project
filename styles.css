@@ -112,26 +112,41 @@ header p.desc {
   border-bottom: 1px solid var(--border);
 }
 
-.period-row {
-  display: grid;
-  grid-template-columns: repeat(var(--n), 1fr);
+/* 時間軸表頭：兩列。週刻度時上列是月份、下列是每週；月刻度時上列是年、下列是月。
+   欄寬用天數比例（不是等分），因為各月天數不同。 */
+
+.scale-groups,
+.scale-cols {
+  display: flex;
 }
 
-.period-cell {
-  text-align: center;
+.scale-group {
+  font-size: 0.72rem;
   font-weight: 700;
-  font-size: 0.8rem;
   color: var(--muted);
-  padding: 10px 4px 4px;
+  padding: 4px 6px;
   border-left: 1px solid var(--border);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
-.period-cell .period-date {
-  display: block;
-  font-weight: 400;
+.scale-group:first-child { border-left: none; }
+
+.scale-col {
+  text-align: center;
   font-size: 0.7rem;
-  margin-top: 2px;
-  min-height: 1em;
+  color: var(--muted);
+  padding: 4px 2px;
+  border-left: 1px solid var(--border);
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+.scale-col.current {
+  color: var(--today);
+  font-weight: 700;
+  background: color-mix(in srgb, var(--today) 10%, transparent);
 }
 
 .marker-row {
@@ -151,8 +166,9 @@ header p.desc {
 .marker.normal { top: 2px; }
 .marker.highlight { top: 22px; }
 
-.marker[data-edge="first"] { transform: translateX(0); }
-.marker[data-edge="last"] { transform: translateX(-100%); }
+/* 里程碑依日期定位，靠邊時改變對齊方式避免標籤被切掉 */
+.marker[data-align="start"] { transform: translateX(0); }
+.marker[data-align="end"] { transform: translateX(-100%); }
 
 .marker.highlight {
   background: var(--highlight-bg);
@@ -190,29 +206,56 @@ header p.desc {
 .track-title[data-color="rust"] { color: var(--rust); }
 .track-title[data-color="olive"] { color: var(--olive); }
 
-.task-rows {
-  grid-column: 2;
+/* 圖表區：欄位分隔線與任務長條都用絕對定位，位置由日期比例決定 */
+
+.chart-col {
+  position: relative;
+}
+
+.col-lines {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.col-line {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 0;
+  border-left: 1px solid var(--border);
+}
+
+.track-rows {
+  position: relative;
   border-top: 1px solid var(--border);
 }
 
 .task-row {
-  display: grid;
-  grid-template-columns: repeat(var(--n), 1fr);
-  align-items: center;
-  min-height: 34px;
-  padding: 3px 0;
+  position: relative;
+  min-height: var(--row-h);
 }
 
 .task-bar {
-  margin: 0 3px;
+  position: absolute;
+  top: 4px;
+  bottom: 4px;
   border-radius: 6px;
-  padding: 4px 8px;
+  padding: 0 8px;
   font-size: 0.72rem;
   font-weight: 600;
   color: #fff;
   white-space: nowrap;
   overflow: hidden;
-  text-overflow: ellipsis;
+  min-width: 3px;
+}
+
+.task-bar.invalid {
+  background: var(--danger-wash) !important;
+  border: 1.5px dashed var(--danger);
+  color: var(--danger);
+  width: auto;
+  padding: 0 10px;
 }
 
 .task-bar[data-color="orange"] { background: var(--orange); }
@@ -832,7 +875,6 @@ footer {
 /* 任務長條內容 */
 
 .task-bar {
-  position: relative;
   display: flex;
   align-items: center;
 }
@@ -872,6 +914,27 @@ footer {
 
 .bar-label > :not(.bar-title) { flex-shrink: 0; }
 
+/* 長條太窄放不下標籤時，整組標籤移到長條右側顯示 */
+.task-bar.label-outside { overflow: visible; }
+
+.task-bar.label-outside .bar-label {
+  position: absolute;
+  left: 100%;
+  margin-left: 6px;
+  color: var(--text);
+  max-width: none;
+  overflow: visible;
+}
+
+.task-bar.label-outside .bar-title { overflow: visible; }
+
+/* 移到外面之後，深色底的徽章要換成在頁面背景上也看得清楚的樣式 */
+.task-bar.label-outside .owner-chip,
+.task-bar.label-outside .delta-chip {
+  background: var(--border);
+  color: var(--text);
+}
+
 .owner-chip {
   font-size: 0.64rem;
   font-weight: 700;
@@ -902,9 +965,10 @@ footer {
 /* 基準線幽靈條（D4） */
 
 .baseline-bar {
-  margin: 0 3px;
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
   height: 6px;
-  align-self: center;
   border-radius: 3px;
   border: 1px dashed var(--muted);
   background: repeating-linear-gradient(
@@ -1311,6 +1375,103 @@ footer {
   border: 1px solid var(--accent);
   border-radius: 999px;
   padding: 0 5px;
+}
+
+/* 刻度切換（週／月） */
+
+.scale-toggle {
+  display: inline-flex;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.scale-toggle button {
+  border: none;
+  background: var(--card-bg);
+  color: var(--muted);
+  font-size: 0.8rem;
+  font-weight: 600;
+  padding: 8px 14px;
+  cursor: pointer;
+}
+
+.scale-toggle button + button { border-left: 1px solid var(--border); }
+
+.scale-toggle button.active {
+  background: var(--accent);
+  color: #fff;
+}
+
+/* 左上角的日期範圍標籤 */
+
+.gantt-corner {
+  display: flex;
+  align-items: flex-end;
+  padding: 0 8px 4px;
+  font-size: 0.66rem;
+  color: var(--muted);
+}
+
+/* 工期與整體區間 */
+
+.days-badge {
+  font-size: 0.7rem;
+  color: var(--muted);
+  white-space: nowrap;
+  flex-shrink: 0;
+  min-width: 42px;
+}
+
+.span-text {
+  font-size: 0.74rem;
+  color: var(--muted);
+}
+
+/* 里程碑編輯 */
+
+.marker-edit-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.marker-row-edit {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.marker-row-edit input[type="text"] {
+  flex: 1;
+  min-width: 120px;
+  padding: 6px 8px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--text);
+  font-size: 0.82rem;
+}
+
+.marker-row-edit input[type="date"] {
+  padding: 6px 8px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--text);
+  font-size: 0.82rem;
+}
+
+.task-edit-row input[type="date"] {
+  padding: 6px 6px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--text);
+  font-size: 0.8rem;
+  flex-shrink: 0;
 }
 
 /* 讓對話框與批次工具在窄視窗仍可操作（完整 RWD 尚未實作） */

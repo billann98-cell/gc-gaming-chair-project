@@ -2,14 +2,18 @@ const params = new URLSearchParams(window.location.search);
 const projectId = params.get("id");
 const filePath = `projects/${projectId}.json`;
 const DRAFT_KEY = `gc-draft:${projectId}`;
+const SCALE_KEY = `gc-scale:${projectId}`;
 
 let data = null;        // 目前顯示／編輯中的資料
-let snapshot = null;    // 進入編輯模式時的深拷貝，用於「取消編輯」還原（A2）
+let snapshot = null;    // 進入編輯模式時的深拷貝，用於「取消編輯」還原
 let editMode = false;
 let dirty = false;
-let editSha = null;     // 載入時的 blob sha，儲存時帶回去做樂觀鎖（A6）
+let editSha = null;     // 載入時的 blob sha，儲存時帶回去做樂觀鎖
 let showBaseline = false;
-let importState = { rows: [], newTracks: [], maxEnd: 1 };
+let timeline = null;    // buildTimeline() 的結果，渲染與拖拉共用
+let scale = "week";
+let migrationInfo = null;
+let importState = { rows: [], newTracks: [] };
 
 /* ---------- 小工具 ---------- */
 
@@ -27,7 +31,12 @@ function statusOptions(selected) {
   ).join("");
 }
 
-/* ---------- 未儲存狀態與草稿（A2） ---------- */
+function loadScale() {
+  const s = localStorage.getItem(SCALE_KEY);
+  return SCALES.includes(s) ? s : "week";
+}
+
+/* ---------- 未儲存狀態與草稿 ---------- */
 
 let draftTimer = null;
 
@@ -40,10 +49,7 @@ function markDirty() {
 
 function saveDraft() {
   try {
-    localStorage.setItem(
-      DRAFT_KEY,
-      JSON.stringify({ savedAt: new Date().toISOString(), sha: editSha, data })
-    );
+    localStorage.setItem(DRAFT_KEY, JSON.stringify({ savedAt: new Date().toISOString(), sha: editSha, data }));
   } catch (e) {
     /* 容量滿了就算了，不影響主要流程 */
   }
@@ -106,16 +112,13 @@ function renderBanners() {
     )
     .join("");
   slot.querySelectorAll("[data-banner]").forEach((el) =>
-    el.addEventListener("click", () => {
-      banners[+el.dataset.banner].actions[+el.dataset.action].run();
-    })
+    el.addEventListener("click", () => banners[+el.dataset.banner].actions[+el.dataset.action].run())
   );
 }
 
-/* ---------- 驗證提示（A3） ---------- */
+/* ---------- 驗證提示 ---------- */
 
 function refreshValidation() {
-  // 只在編輯模式提示，純檢視時不要用紅色橫幅干擾
   if (!editMode) {
     dropBanner("validation");
     return;
@@ -128,15 +131,11 @@ function refreshValidation() {
   }
   const list = problems.slice(0, 6).map((p) => `<li>${escapeHtml(p)}</li>`).join("");
   const more = problems.length > 6 ? `<li>還有 ${problems.length - 6} 項…</li>` : "";
-  setBanner(
-    "validation",
-    "error",
-    `<strong>有 ${problems.length} 個問題必須修正才能儲存：</strong><ul>${list}${more}</ul>`
-  );
+  setBanner("validation", "error", `<strong>有 ${problems.length} 個問題必須修正才能儲存：</strong><ul>${list}${more}</ul>`);
   $("save-btn").disabled = true;
 }
 
-/* ---------- 甘特圖 ---------- */
+/* ---------- 標頭 ---------- */
 
 function renderHeader() {
   document.title = `${data.project.name} · 專案排程`;
@@ -146,52 +145,61 @@ function renderHeader() {
 
   const agg = aggregateProgress(allTasks(data));
   const late = countDelayed();
+  const range = contentDateRange(data);
+  const span = range ? `${formatDate(range.min)} ~ ${formatDate(range.max)}（${dayDiff(range.max, range.min) + 1} 天）` : "";
+
   $("project-progress").innerHTML = `
     <div class="progress-line">
       <div class="progress-bar" role="img" aria-label="整體完成度 ${agg.pct}%">
         <div class="progress-fill" style="width:${agg.pct}%"></div>
       </div>
       <span class="progress-text">${agg.pct}% ・ ${agg.done}/${agg.total} 項完成</span>
+      ${span ? `<span class="span-text">${escapeHtml(span)}</span>` : ""}
       ${late.behind ? `<span class="delay-chip">${late.behind} 項落後基準線</span>` : ""}
       ${late.ahead ? `<span class="ahead-chip">${late.ahead} 項提前</span>` : ""}
     </div>`;
+
+  $("scale-toggle")
+    .querySelectorAll("button")
+    .forEach((b) => b.classList.toggle("active", b.dataset.scale === scale));
 }
 
 function countDelayed() {
   let behind = 0, ahead = 0;
   allTasks(data).forEach((t) => {
     if (!t.baseline) return;
-    if (t.end > t.baseline.end) behind++;
-    else if (t.end < t.baseline.end) ahead++;
+    const e = parseISO(t.end), be = parseISO(t.baseline.end);
+    if (!e || !be) return;
+    if (e > be) behind++;
+    else if (e < be) ahead++;
   });
   return { behind, ahead };
 }
 
-// 基準線與現況的差異描述（D4）
+// 基準線與現況的差異，直接以天為單位
 function baselineDelta(task) {
   if (!task.baseline) return null;
-  const d = task.end - task.baseline.end;
-  if (d === 0 && task.start === task.baseline.start) return null;
-  const nowDate = periodDate(data.periods, task.end);
-  const baseDate = periodDate(data.periods, task.baseline.end);
-  const days = nowDate && baseDate ? dayDiff(nowDate, baseDate) : null;
-  const sign = d > 0 ? "延後" : d < 0 ? "提前" : "調整";
-  const periodPart = d === 0 ? "起始調整" : `${sign} ${Math.abs(d)} 期`;
-  const dayPart = days ? `（${days > 0 ? "+" : ""}${days} 天）` : "";
-  return { text: periodPart + dayPart, direction: d > 0 ? "behind" : d < 0 ? "ahead" : "shift" };
+  const e = parseISO(task.end), be = parseISO(task.baseline.end);
+  const s = parseISO(task.start), bs = parseISO(task.baseline.start);
+  if (!e || !be) return null;
+  const d = dayDiff(e, be);
+  if (d === 0 && s && bs && dayDiff(s, bs) === 0) return null;
+  if (d === 0) return { text: "起始調整", direction: "shift" };
+  return {
+    text: `${d > 0 ? "延後" : "提前"} ${Math.abs(d)} 天`,
+    direction: d > 0 ? "behind" : "ahead",
+  };
 }
 
 function taskTooltip(track, task) {
-  const sd = periodDate(data.periods, task.start);
-  const ed = periodDate(data.periods, task.end);
-  const lines = [
-    `${track.label} / ${task.title}`,
-    `期間 ${task.start}~${task.end}${sd && ed ? `（${formatDate(sd)} ~ ${formatDate(ed)}）` : ""}`,
-    `狀態：${STATUS_LABEL[task.status]}`,
-  ];
+  const s = parseISO(task.start), e = parseISO(task.end);
+  const lines = [`${track.label} / ${task.title}`];
+  if (s && e) lines.push(`${formatDate(s)} ~ ${formatDate(e)}（${taskDays(task)} 天）`);
+  else lines.push("⚠ 缺少日期");
+  lines.push(`狀態：${STATUS_LABEL[task.status]}`);
   if (task.owner) lines.push(`負責人：${task.owner}`);
   const subs = task.subtasks || [];
-  if (subs.length) lines.push(`細項：${subs.filter((s) => s.done).length}/${subs.length}`);
+  if (subs.length) lines.push(`細項：${subs.filter((x) => x.done).length}/${subs.length}`);
   const bd = baselineDelta(task);
   if (bd) lines.push(`對比基準線：${bd.text}`);
   if (task.note) lines.push(`備註：${task.note}`);
@@ -199,52 +207,82 @@ function taskTooltip(track, task) {
   return lines.join("\n");
 }
 
+/* ---------- 甘特圖（日期軸） ---------- */
+
+function pct(n) {
+  return `${n}%`;
+}
+
 function renderGantt() {
-  const { periods, phaseMarkers, tracks } = data;
-  const n = periods.length;
-  const tp = todayPosition(periods);
+  timeline = buildTimeline(data, scale);
+  const tl = timeline;
 
-  // 期間標頭
-  const periodRow = $("period-row");
-  periodRow.style.setProperty("--n", n);
-  periodRow.innerHTML = periods
-    .map((p, i) => {
-      const d = parseISO(p.date);
-      const isNow = tp.ok && tp.periodIndex === i + 1;
-      const legacy = p.dateLegacy
-        ? `<span class="period-date bad" title="格式無法辨識，請重新選擇日期">${escapeHtml(p.dateLegacy)} ⚠</span>`
-        : `<span class="period-date">${d ? formatDateShort(d) : ""}</span>`;
-      return `<div class="period-cell${isNow ? " current" : ""}">${p.index}${legacy}</div>`;
+  $("range-label").textContent = `${formatDateShort(tl.start)} – ${formatDateShort(tl.end)}`;
+
+  // 依欄位數量撐開寬度，讓每一欄都還讀得到標籤（長專案就靠橫向捲動）
+  const minCol = tl.scale === "week" ? 54 : 88;
+  document.querySelector(".gantt").style.minWidth = `${Math.max(900, 170 + tl.columns.length * minCol)}px`;
+
+  // 表頭第一列：週刻度顯示月份、月刻度顯示年
+  $("scale-groups").innerHTML = tl.groups
+    .map((g) => `<div class="scale-group" style="width:${pct((g.days / tl.totalDays) * 100)}">${escapeHtml(g.label)}</div>`)
+    .join("");
+
+  // 表頭第二列：實際刻度
+  const t0 = today();
+  $("scale-cols").innerHTML = tl.columns
+    .map((c) => {
+      const isNow = t0 >= c.start && t0 <= c.end;
+      return `<div class="scale-col${isNow ? " current" : ""}" style="width:${pct((c.days / tl.totalDays) * 100)}" title="${escapeHtml(
+        formatDate(c.start) + " ~ " + formatDate(c.end)
+      )}">${escapeHtml(c.label)}</div>`;
     })
     .join("");
 
-  // 階段里程碑
-  $("marker-row").innerHTML = phaseMarkers
-    .map((m, i) => {
-      const left = ((m.line - 1) / n) * 100;
-      const edge = i === 0 ? "first" : i === phaseMarkers.length - 1 ? "last" : "mid";
-      return `<div class="marker ${m.highlight ? "highlight" : "normal"}" data-edge="${edge}" style="left:${left}%">${escapeHtml(m.label)}</div>`;
+  // 里程碑標籤：依日期定位，靠邊時調整對齊避免被切掉
+  $("marker-row").innerHTML = (data.phaseMarkers || [])
+    .map((m) => {
+      const p = datePct(m.date, tl);
+      if (p === null) return "";
+      const align = p < 4 ? "start" : p > 96 ? "end" : "mid";
+      return `<div class="marker ${m.highlight ? "highlight" : "normal"}" data-align="${align}" style="left:${pct(p)}" title="${escapeHtml(
+        m.label + " ・ " + formatDate(parseISO(m.date))
+      )}">${escapeHtml(m.label)}</div>`;
     })
     .join("");
 
-  // 里程碑虛線 + 今天線（D1）
-  const lines = phaseMarkers
-    .map((m) => `<div class="marker-line${m.highlight ? " highlight" : ""}" style="left:${((m.line - 1) / n) * 100}%"></div>`)
+  // 里程碑垂直線 + 今天線
+  const lines = (data.phaseMarkers || [])
+    .map((m) => {
+      const p = datePct(m.date, tl);
+      return p === null ? "" : `<div class="marker-line${m.highlight ? " highlight" : ""}" style="left:${pct(p)}"></div>`;
+    })
     .join("");
-  const todayLine = tp.ok
-    ? `<div class="today-line" style="left:${tp.pct}%"><span class="today-flag">今天 ${formatDateShort(tp.date)}</span></div>`
+  const tp = todayPosition(tl);
+  const todayLine = tp.inRange
+    ? `<div class="today-line" style="left:${pct(tp.pct)}"><span class="today-flag">今天 ${formatDateShort(tp.date)}</span></div>`
     : "";
   $("marker-lines").innerHTML = lines + todayLine;
-  $("today-note").textContent = tp.ok ? "" : `今天線未顯示：${tp.reason}`;
+  $("today-note").textContent = tp.inRange ? "" : `今天（${formatDate(tp.date)}）不在這個專案的排程範圍內`;
 
   // 主體
   const bodyEl = $("gantt-body");
   const labelCol = document.createElement("div");
   labelCol.className = "track-label-col";
-  const taskCol = document.createElement("div");
-  taskCol.style.gridColumn = "2";
+  const chartCol = document.createElement("div");
+  chartCol.className = "chart-col";
+  chartCol.style.gridColumn = "2";
 
-  tracks.forEach((track, ti) => {
+  // 欄位分隔線
+  const gridLines = document.createElement("div");
+  gridLines.className = "col-lines";
+  gridLines.innerHTML = tl.columns
+    .slice(1)
+    .map((c) => `<div class="col-line" style="left:${pct((dayDiff(c.start, tl.start) / tl.totalDays) * 100)}"></div>`)
+    .join("");
+  chartCol.appendChild(gridLines);
+
+  (data.tracks || []).forEach((track, ti) => {
     const agg = aggregateProgress(track.tasks);
 
     const trackBlock = document.createElement("div");
@@ -266,29 +304,38 @@ function renderGantt() {
     });
     labelCol.appendChild(trackBlock);
 
-    const taskRows = document.createElement("div");
-    taskRows.className = "task-rows";
-    taskRows.style.setProperty("--n", n);
+    const rows = document.createElement("div");
+    rows.className = "track-rows";
     const headerSpacer = document.createElement("div");
     headerSpacer.className = "row-spacer";
-    taskRows.appendChild(headerSpacer);
+    rows.appendChild(headerSpacer);
 
     track.tasks.forEach((task, tj) => {
-      const r = clampTaskRange(task, n); // 防禦性：資料若有問題也要畫在合理位置（A3）
       const row = document.createElement("div");
       row.className = "task-row";
-      row.style.setProperty("--n", n);
 
-      // 基準線幽靈條（D4）
+      const geo = taskGeometry(task, tl);
+      if (!geo) {
+        const bad = document.createElement("div");
+        bad.className = "task-bar invalid";
+        bad.dataset.color = track.color;
+        bad.style.left = "0%";
+        bad.title = taskTooltip(track, task);
+        bad.innerHTML = `<span class="bar-label"><span class="bar-title">⚠ ${escapeHtml(task.title || "未命名")}（缺少日期）</span></span>`;
+        row.appendChild(bad);
+        rows.appendChild(row);
+        return;
+      }
+
+      // 基準線幽靈條
       if (showBaseline && task.baseline) {
-        const b = clampTaskRange(task.baseline, n);
-        if (b.start !== r.start || b.end !== r.end) {
+        const bgeo = taskGeometry(task.baseline, tl);
+        if (bgeo && (bgeo.left !== geo.left || bgeo.width !== geo.width)) {
           const ghost = document.createElement("div");
           ghost.className = "baseline-bar";
-          ghost.style.gridRow = "1";
-          ghost.style.gridColumnStart = String(b.start);
-          ghost.style.gridColumnEnd = String(b.end + 1);
-          ghost.title = `基準線：期間 ${b.start}~${b.end}`;
+          ghost.style.left = pct(bgeo.left);
+          ghost.style.width = pct(bgeo.width);
+          ghost.title = `基準線：${formatDate(parseISO(task.baseline.start))} ~ ${formatDate(parseISO(task.baseline.end))}`;
           row.appendChild(ghost);
         }
       }
@@ -297,10 +344,9 @@ function renderGantt() {
       bar.className = "task-bar";
       bar.dataset.color = track.color;
       bar.dataset.status = task.status;
-      bar.style.gridRow = "1";
-      bar.style.gridColumnStart = String(r.start);
-      bar.style.gridColumnEnd = String(r.end + 1);
-      bar.title = taskTooltip(track, task); // 補上 tooltip，名稱被截斷也看得到全文
+      bar.style.left = pct(geo.left);
+      bar.style.width = pct(geo.width);
+      bar.title = taskTooltip(track, task);
 
       const subs = task.subtasks || [];
       const prog = Math.round(taskProgress(task) * 100);
@@ -318,34 +364,46 @@ function renderGantt() {
 
       if (editMode) {
         bar.classList.add("editable");
-        const h1 = document.createElement("span");
-        h1.className = "bar-handle start";
-        h1.dataset.handle = "start";
-        const h2 = document.createElement("span");
-        h2.className = "bar-handle end";
-        h2.dataset.handle = "end";
-        bar.appendChild(h1);
-        bar.appendChild(h2);
-        attachDrag(bar, task, ti, tj, taskRows);
+        ["start", "end"].forEach((which) => {
+          const h = document.createElement("span");
+          h.className = `bar-handle ${which}`;
+          h.dataset.handle = which;
+          bar.appendChild(h);
+        });
+        attachDrag(bar, task, ti, tj, chartCol);
       }
 
       row.appendChild(bar);
-      taskRows.appendChild(row);
+      rows.appendChild(row);
     });
-    taskCol.appendChild(taskRows);
+    chartCol.appendChild(rows);
   });
 
   bodyEl.innerHTML = "";
   bodyEl.appendChild(labelCol);
-  bodyEl.appendChild(taskCol);
+  bodyEl.appendChild(chartCol);
 
+  placeNarrowBarLabels();
   document.querySelector(".legend-baseline").style.display = hasBaseline() && showBaseline ? "flex" : "none";
 }
 
-// D1：開頁時把今天捲進視野
+// 改成日期軸之後，長條寬度等比於真實工期，短任務的長條會很窄，
+// 負責人／備註徽章塞不進去就會被裁掉一半。這裡量測一次，
+// 放不下的就把整組標籤移到長條右側顯示（一般甘特圖工具的做法）。
+function placeNarrowBarLabels() {
+  document.querySelectorAll(".task-bar:not(.invalid)").forEach((bar) => {
+    const label = bar.querySelector(".bar-label");
+    if (!label) return;
+    const badgesClipped = label.scrollWidth > label.clientWidth + 1;
+    const tooNarrowToRead = bar.clientWidth < 56;
+    bar.classList.toggle("label-outside", badgesClipped || tooNarrowToRead);
+  });
+}
+
 function scrollToToday() {
-  const tp = todayPosition(data.periods);
-  if (!tp.ok) return;
+  if (!timeline) return;
+  const tp = todayPosition(timeline);
+  if (!tp.inRange) return;
   const scroller = $("gantt-scroll");
   const gantt = scroller.querySelector(".gantt");
   const labelW = 170;
@@ -353,48 +411,64 @@ function scrollToToday() {
   scroller.scrollLeft = Math.max(0, x - scroller.clientWidth / 2);
 }
 
-/* ---------- 拖拉調整任務（D7） ---------- */
+function refreshView() {
+  renderHeader();
+  renderGantt();
+  refreshValidation();
+}
 
-function attachDrag(bar, task, ti, tj, taskRowsEl) {
+/* ---------- 拖拉調整（以天為單位） ---------- */
+
+function attachDrag(bar, task, ti, tj, chartEl) {
   bar.addEventListener("pointerdown", (e) => {
     if (!editMode) return;
     e.preventDefault();
-    const n = data.periods.length;
+    const tl = timeline;
+    const chartWidth = chartEl.getBoundingClientRect().width;
+    if (!chartWidth) return;
+    const pxPerDay = chartWidth / tl.totalDays;
+
     const mode =
       e.target.dataset.handle === "start"
         ? "resize-start"
         : e.target.dataset.handle === "end"
         ? "resize-end"
         : "move";
-    const colWidth = taskRowsEl.getBoundingClientRect().width / n;
-    if (!colWidth) return;
 
     const startX = e.clientX;
-    const os = task.start, oe = task.end, len = oe - os;
+    const os = parseISO(task.start), oe = parseISO(task.end);
+    if (!os || !oe) return;
     let ns = os, ne = oe;
 
     bar.setPointerCapture(e.pointerId);
     bar.classList.add("dragging");
-
     const hint = document.createElement("span");
     hint.className = "drag-hint";
     bar.appendChild(hint);
 
+    const paint = () => {
+      const left = (dayDiff(ns, tl.start) / tl.totalDays) * 100;
+      const width = ((dayDiff(ne, ns) + 1) / tl.totalDays) * 100;
+      bar.style.left = pct(left);
+      bar.style.width = pct(Math.max(width, 0.4));
+      hint.textContent = `${formatDateShort(ns)} – ${formatDateShort(ne)}（${dayDiff(ne, ns) + 1} 天）`;
+    };
+
     const onMove = (ev) => {
-      const d = Math.round((ev.clientX - startX) / colWidth);
+      const d = Math.round((ev.clientX - startX) / pxPerDay);
       if (mode === "move") {
-        ns = Math.min(Math.max(1, os + d), n - len);
-        ne = ns + len;
+        ns = addDays(os, d);
+        ne = addDays(oe, d);
       } else if (mode === "resize-start") {
-        ns = Math.min(Math.max(1, os + d), oe);
+        ns = addDays(os, d);
+        if (ns > oe) ns = oe; // 不允許開始超過結束
         ne = oe;
       } else {
         ns = os;
-        ne = Math.max(os, Math.min(n, oe + d));
+        ne = addDays(oe, d);
+        if (ne < os) ne = os;
       }
-      bar.style.gridColumnStart = String(ns);
-      bar.style.gridColumnEnd = String(ne + 1);
-      hint.textContent = `${ns}~${ne}`;
+      paint();
     };
 
     const finish = () => {
@@ -403,12 +477,12 @@ function attachDrag(bar, task, ti, tj, taskRowsEl) {
       bar.removeEventListener("pointercancel", finish);
       bar.classList.remove("dragging");
       hint.remove();
-      if (ns !== os || ne !== oe) {
-        task.start = ns;
-        task.end = ne;
+      if (dayDiff(ns, os) !== 0 || dayDiff(ne, oe) !== 0) {
+        task.start = toISO(ns);
+        task.end = toISO(ne);
         markDirty();
         refreshView();
-        syncRangeInputs(ti, tj);
+        syncDateInputs(ti, tj);
       }
     };
 
@@ -418,18 +492,15 @@ function attachDrag(bar, task, ti, tj, taskRowsEl) {
   });
 }
 
-// 拖拉後把編輯面板的數字欄位同步過來（不整頁重繪，避免焦點跳掉）
-function syncRangeInputs(ti, tj) {
+// 拖拉後同步編輯面板的日期欄位，不整頁重繪以免焦點跳掉
+function syncDateInputs(ti, tj) {
+  const t = data.tracks[ti].tasks[tj];
   const s = document.querySelector(`[data-kind='task-start'][data-track='${ti}'][data-task='${tj}']`);
   const e = document.querySelector(`[data-kind='task-end'][data-track='${ti}'][data-task='${tj}']`);
-  if (s) s.value = data.tracks[ti].tasks[tj].start;
-  if (e) e.value = data.tracks[ti].tasks[tj].end;
-}
-
-function refreshView() {
-  renderHeader();
-  renderGantt();
-  refreshValidation();
+  if (s) s.value = t.start;
+  if (e) e.value = t.end;
+  const d = document.querySelector(`[data-days='${ti}-${tj}']`);
+  if (d) d.textContent = `${taskDays(t)} 天`;
 }
 
 /* ---------- 編輯面板 ---------- */
@@ -438,7 +509,7 @@ function fieldError(el, msg) {
   el.classList.toggle("input-error", !!msg);
   if (msg) el.title = msg;
   else el.removeAttribute("title");
-  const slot = el.closest(".task-edit-item, .field-inline");
+  const slot = el.closest(".task-edit-item, .marker-row-edit");
   if (!slot) return;
   let box = slot.querySelector(".field-error");
   if (msg) {
@@ -461,16 +532,18 @@ function renderEditPanel() {
     return;
   }
   panel.style.display = "block";
-  const n = data.periods.length;
 
-  const periodsHtml = data.periods
+  const markersHtml = (data.phaseMarkers || [])
     .map(
-      (p, i) => `
-      <label class="field-inline">
-        Period ${p.index}
-        <input type="date" data-kind="period-date" data-index="${i}" value="${escapeHtml(p.date || "")}" />
-        ${p.dateLegacy ? `<span class="field-error">原值「${escapeHtml(p.dateLegacy)}」格式無法辨識，請重新選擇</span>` : ""}
-      </label>`
+      (m, mi) => `
+      <div class="marker-row-edit">
+        <input type="text" data-kind="marker-label" data-marker="${mi}" value="${escapeHtml(m.label)}" placeholder="里程碑名稱" />
+        <input type="date" data-kind="marker-date" data-marker="${mi}" value="${escapeHtml(m.date || "")}" />
+        <label class="checkbox-line">
+          <input type="checkbox" data-kind="marker-highlight" data-marker="${mi}" ${m.highlight ? "checked" : ""} /> 強調
+        </label>
+        <button class="btn-remove" data-kind="marker-remove" data-marker="${mi}">刪除</button>
+      </div>`
     )
     .join("");
 
@@ -513,13 +586,14 @@ function renderEditPanel() {
           <div class="task-edit-row">
             <input type="text" data-kind="task-title" data-track="${ti}" data-task="${tj}" value="${escapeHtml(task.title)}" placeholder="任務名稱" />
             <input type="text" class="owner-input" data-kind="task-owner" data-track="${ti}" data-task="${tj}" value="${escapeHtml(task.owner || "")}" placeholder="負責人" />
-            <input type="number" min="1" max="${n}" data-kind="task-start" data-track="${ti}" data-task="${tj}" value="${task.start}" />
+            <input type="date" data-kind="task-start" data-track="${ti}" data-task="${tj}" value="${escapeHtml(task.start || "")}" />
             <span>~</span>
-            <input type="number" min="1" max="${n}" data-kind="task-end" data-track="${ti}" data-task="${tj}" value="${task.end}" />
+            <input type="date" data-kind="task-end" data-track="${ti}" data-task="${tj}" value="${escapeHtml(task.end || "")}" />
+            <span class="days-badge" data-days="${ti}-${tj}">${taskDays(task)} 天</span>
             <select data-kind="task-status" data-track="${ti}" data-task="${tj}">${statusOptions(task.status)}</select>
             <button class="btn-remove" data-kind="task-remove" data-track="${ti}" data-task="${tj}">刪除</button>
           </div>
-          ${bd ? `<div class="baseline-note ${bd.direction}">對比基準線：${escapeHtml(bd.text)}（基準 ${task.baseline.start}~${task.baseline.end}）</div>` : ""}
+          ${bd ? `<div class="baseline-note ${bd.direction}">對比基準線：${escapeHtml(bd.text)}（基準 ${escapeHtml(task.baseline.start)} ~ ${escapeHtml(task.baseline.end)}）</div>` : ""}
           <details class="subtask-details" ${subs.length || task.note || (task.links || []).length ? "open" : ""}>
             <summary>詳細 ・ 細項 ${doneN}/${subs.length}${task.note ? " ・ 有備註" : ""}${(task.links || []).length ? ` ・ ${task.links.length} 連結` : ""}</summary>
             <div class="subtask-list">
@@ -553,15 +627,11 @@ function renderEditPanel() {
   panel.innerHTML = `
     <section class="edit-section">
       <div class="section-head">
-        <h3>期間</h3>
-        <div class="period-count">
-          共 ${n} 期
-          <button class="btn-secondary btn-sm" data-kind="period-remove">−</button>
-          <button class="btn-secondary btn-sm" data-kind="period-add">＋</button>
-        </div>
+        <h3>階段里程碑</h3>
+        <button class="btn-secondary btn-sm" data-kind="marker-add">＋ 新增里程碑</button>
       </div>
-      <div class="period-edit-grid">${periodsHtml}</div>
-      <p class="hint">填入日期後，甘特圖才會顯示今天的位置、也才能算出到期提醒。</p>
+      <div class="marker-edit-list">${markersHtml || '<p class="hint">還沒有里程碑。</p>'}</div>
+      <p class="hint">每個里程碑綁一個實際日期，垂直線會畫在時間軸的對應位置。</p>
     </section>
 
     <section class="edit-section">
@@ -577,14 +647,17 @@ function renderEditPanel() {
         </select>
         <label class="bulk-num">位移
           <input type="number" value="1" data-kind="bulk-amount" />
-          期
         </label>
+        <select data-kind="bulk-unit">
+          <option value="week">週</option>
+          <option value="day">天</option>
+        </select>
         <label class="checkbox-line">
-          <input type="checkbox" data-kind="bulk-extend" checked /> 不足時自動增加期間
+          <input type="checkbox" data-kind="bulk-markers" /> 里程碑一起位移
         </label>
         <button class="btn-secondary" data-kind="bulk-apply">套用位移</button>
       </div>
-      <p class="hint">正數往後延、負數往前提。例如整條認證軌道要延兩期，選「認證」填 2。</p>
+      <p class="hint">正數往後延、負數往前提。例如整條認證軌道要延兩週，選「認證」填 2、單位選週。</p>
     </section>
 
     <section class="edit-section">
@@ -594,7 +667,7 @@ function renderEditPanel() {
         ${hasBaseline() ? `<button class="btn-secondary" data-kind="baseline-clear">清除基準線</button>` : ""}
         ${data.project.baselineCapturedAt ? `<span class="hint inline">基準線建立於 ${escapeHtml(data.project.baselineCapturedAt)}</span>` : ""}
       </div>
-      <p class="hint">把目前排程存成基準線之後，之後每次調整都能看出哪些任務延後了幾期／幾天。</p>
+      <p class="hint">存成基準線之後，每次調整都能看出各任務延後或提前幾天。</p>
     </section>
 
     <section class="edit-section">
@@ -602,7 +675,7 @@ function renderEditPanel() {
         <h3>任務</h3>
         <button class="btn-secondary btn-sm" data-kind="import-open">📋 從 Excel 貼上匯入</button>
       </div>
-      <p class="hint">在甘特圖上可以直接拖曳長條移動位置，拖兩端可以改長度。</p>
+      <p class="hint">在甘特圖上可以直接拖曳長條移動日期，拖兩端可以改工期，以天為單位。</p>
       ${tracksHtml}
     </section>
   `;
@@ -611,63 +684,49 @@ function renderEditPanel() {
 }
 
 function bindEditPanel(panel) {
-  const n = () => data.periods.length;
   const T = (e) => data.tracks[+e.target.dataset.track];
   const TK = (e) => T(e).tasks[+e.target.dataset.task];
+  const M = (e) => data.phaseMarkers[+e.target.dataset.marker];
 
-  // 期間日期
-  panel.querySelectorAll("[data-kind='period-date']").forEach((el) =>
+  /* 里程碑 */
+  panel.querySelectorAll("[data-kind='marker-label']").forEach((el) =>
+    el.addEventListener("input", (e) => {
+      M(e).label = e.target.value;
+      markDirty();
+      refreshView();
+    })
+  );
+  panel.querySelectorAll("[data-kind='marker-date']").forEach((el) =>
     el.addEventListener("change", (e) => {
-      const p = data.periods[+e.target.dataset.index];
-      p.date = e.target.value || "";
-      delete p.dateLegacy;
+      M(e).date = e.target.value || "";
+      markDirty();
+      refreshView();
+    })
+  );
+  panel.querySelectorAll("[data-kind='marker-highlight']").forEach((el) =>
+    el.addEventListener("change", (e) => {
+      M(e).highlight = e.target.checked;
+      markDirty();
+      refreshView();
+    })
+  );
+  panel.querySelectorAll("[data-kind='marker-remove']").forEach((el) =>
+    el.addEventListener("click", (e) => {
+      data.phaseMarkers.splice(+e.target.dataset.marker, 1);
       markDirty();
       refreshView();
       renderEditPanel();
     })
   );
-
-  panel.querySelector("[data-kind='period-add']").addEventListener("click", () => {
-    data.periods.push({ index: data.periods.length + 1, date: "" });
+  panel.querySelector("[data-kind='marker-add']").addEventListener("click", () => {
+    const range = contentDateRange(data);
+    data.phaseMarkers.push({ label: "新里程碑", date: toISO(range ? range.min : today()), highlight: false });
     markDirty();
     refreshView();
     renderEditPanel();
   });
 
-  panel.querySelector("[data-kind='period-remove']").addEventListener("click", () => {
-    if (data.periods.length <= 1) {
-      alert("至少要保留一個期間。");
-      return;
-    }
-    const last = data.periods.length;
-    const affected = allTasks(data).filter((t) => t.end === last || t.start === last).length;
-    const markers = data.phaseMarkers.filter((m) => m.line > last).length;
-    const msg =
-      affected || markers
-        ? `刪除第 ${last} 期會影響 ${affected} 個任務與 ${markers} 個里程碑（會被移到前一期）。確定要刪除嗎？`
-        : `確定刪除第 ${last} 期？`;
-    if (!confirm(msg)) return;
-    data.periods.pop();
-    const nn = data.periods.length;
-    data.tracks.forEach((tr) =>
-      tr.tasks.forEach((t) => {
-        const r = clampTaskRange(t, nn);
-        t.start = r.start;
-        t.end = r.end;
-        if (t.baseline) {
-          const b = clampTaskRange(t.baseline, nn);
-          t.baseline.start = b.start;
-          t.baseline.end = b.end;
-        }
-      })
-    );
-    data.phaseMarkers.forEach((m) => (m.line = Math.min(m.line, nn + 1)));
-    markDirty();
-    refreshView();
-    renderEditPanel();
-  });
-
-  // 任務文字欄位
+  /* 任務文字欄位 */
   panel.querySelectorAll("[data-kind='task-title']").forEach((el) =>
     el.addEventListener("input", (e) => {
       TK(e).title = e.target.value;
@@ -690,24 +749,21 @@ function bindEditPanel(panel) {
     })
   );
 
-  // 期間數字：無效值不寫進資料，只標紅提示；離開欄位時還原（A3）
+  /* 日期：結束早於開始就擋下並提示，不寫進資料 */
   ["task-start", "task-end"].forEach((kind) => {
     panel.querySelectorAll(`[data-kind='${kind}']`).forEach((el) => {
-      el.addEventListener("input", (e) => {
+      el.addEventListener("change", (e) => {
         const task = TK(e);
-        const raw = e.target.value;
-        if (!isValidPeriodValue(raw, n())) {
-          fieldError(e.target, `請輸入 1 到 ${n()} 之間的整數`);
+        const v = e.target.value;
+        if (!v) {
+          fieldError(e.target, "日期不可空白");
           return;
         }
-        const v = Number(raw);
-        const other = kind === "task-start" ? task.end : task.start;
-        if (kind === "task-start" && v > other) {
-          fieldError(e.target, `開始期間不能大於結束期間（${other}）`);
-          return;
-        }
-        if (kind === "task-end" && v < other) {
-          fieldError(e.target, `結束期間不能小於開始期間（${other}）`);
+        const s = kind === "task-start" ? parseISO(v) : parseISO(task.start);
+        const en = kind === "task-end" ? parseISO(v) : parseISO(task.end);
+        if (s && en && en < s) {
+          fieldError(e.target, "結束日期不能早於開始日期");
+          e.target.value = kind === "task-start" ? task.start : task.end;
           return;
         }
         fieldError(e.target, "");
@@ -715,11 +771,7 @@ function bindEditPanel(panel) {
         else task.end = v;
         markDirty();
         refreshView();
-      });
-      el.addEventListener("blur", (e) => {
-        const task = TK(e);
-        e.target.value = kind === "task-start" ? task.start : task.end;
-        fieldError(e.target, "");
+        syncDateInputs(+e.target.dataset.track, +e.target.dataset.task);
       });
     });
   });
@@ -746,10 +798,12 @@ function bindEditPanel(panel) {
 
   panel.querySelectorAll("[data-kind='task-add']").forEach((el) =>
     el.addEventListener("click", (e) => {
+      const range = contentDateRange(data);
+      const base = range ? range.min : today();
       T(e).tasks.push({
         title: "新任務",
-        start: 1,
-        end: 1,
+        start: toISO(base),
+        end: toISO(addDays(base, 6)),
         status: "upcoming",
         owner: "",
         note: "",
@@ -763,7 +817,7 @@ function bindEditPanel(panel) {
     })
   );
 
-  // 細項
+  /* 細項 */
   panel.querySelectorAll("[data-kind='subtask-done']").forEach((el) =>
     el.addEventListener("change", (e) => {
       TK(e).subtasks[+e.target.dataset.sub].done = e.target.checked;
@@ -797,7 +851,7 @@ function bindEditPanel(panel) {
     })
   );
 
-  // 連結
+  /* 連結 */
   panel.querySelectorAll("[data-kind='link-label']").forEach((el) =>
     el.addEventListener("input", (e) => {
       TK(e).links[+e.target.dataset.link].label = e.target.value;
@@ -831,20 +885,21 @@ function bindEditPanel(panel) {
     })
   );
 
-  // 批次位移（F5）
+  /* 批次位移 */
   panel.querySelector("[data-kind='bulk-apply']").addEventListener("click", () => {
     const scope = panel.querySelector("[data-kind='bulk-scope']").value;
     const filter = panel.querySelector("[data-kind='bulk-filter']").value;
     const amount = Math.round(Number(panel.querySelector("[data-kind='bulk-amount']").value));
-    const extend = panel.querySelector("[data-kind='bulk-extend']").checked;
+    const unit = panel.querySelector("[data-kind='bulk-unit']").value;
+    const alsoMarkers = panel.querySelector("[data-kind='bulk-markers']").checked;
     if (!Number.isFinite(amount) || amount === 0) {
-      alert("請填入非零的整數期數。");
+      alert("請填入非零的整數。");
       return;
     }
-    applyBulkShift(scope, filter, amount, extend);
+    applyBulkShift(scope, filter, amount * (unit === "week" ? 7 : 1), alsoMarkers);
   });
 
-  // 基準線（D4）
+  /* 基準線 */
   panel.querySelector("[data-kind='baseline-set']").addEventListener("click", () => {
     if (hasBaseline() && !confirm("這會用目前排程覆蓋現有基準線，確定嗎？")) return;
     allTasks(data).forEach((t) => (t.baseline = { start: t.start, end: t.end }));
@@ -869,7 +924,7 @@ function bindEditPanel(panel) {
   panel.querySelector("[data-kind='import-open']").addEventListener("click", openImport);
 }
 
-function applyBulkShift(scope, filter, amount, extend) {
+function applyBulkShift(scope, filter, days, alsoMarkers) {
   const targets = [];
   data.tracks.forEach((track, ti) => {
     if (scope !== "all" && scope !== `track:${ti}`) return;
@@ -878,53 +933,49 @@ function applyBulkShift(scope, filter, amount, extend) {
       targets.push(task);
     });
   });
-  if (!targets.length) {
+  if (!targets.length && !alsoMarkers) {
     alert("沒有符合條件的任務。");
     return;
   }
 
-  if (amount > 0 && extend) {
-    const needed = Math.max(...targets.map((t) => t.end)) + amount;
-    while (data.periods.length < needed) {
-      data.periods.push({ index: data.periods.length + 1, date: "" });
-    }
-  }
-
-  const n = data.periods.length;
-  let clamped = 0;
+  let moved = 0, skipped = 0;
   targets.forEach((t) => {
-    const len = t.end - t.start;
-    let s = t.start + amount;
-    if (s < 1) {
-      s = 1;
-      clamped++;
+    const s = parseISO(t.start), e = parseISO(t.end);
+    if (!s || !e) {
+      skipped++;
+      return;
     }
-    if (s + len > n) {
-      s = Math.max(1, n - len);
-      clamped++;
-    }
-    t.start = s;
-    t.end = Math.min(n, s + len);
+    t.start = toISO(addDays(s, days));
+    t.end = toISO(addDays(e, days));
+    moved++;
   });
+
+  let markersMoved = 0;
+  if (alsoMarkers) {
+    (data.phaseMarkers || []).forEach((m) => {
+      const d = parseISO(m.date);
+      if (!d) return;
+      m.date = toISO(addDays(d, days));
+      markersMoved++;
+    });
+  }
 
   markDirty();
   refreshView();
   renderEditPanel();
 
-  const msg = `已位移 ${targets.length} 個任務${amount > 0 ? `往後 ${amount}` : `往前 ${-amount}`} 期。`;
-  if (clamped) {
-    setBanner(
-      "bulk",
-      "warn",
-      `${escapeHtml(msg)}其中 <strong>${clamped}</strong> 個任務因為撞到排程邊界被截斷 —— 需要更多期間的話，用「期間」區塊的＋按鈕增加。`,
-      [{ label: "知道了", run: () => dropBanner("bulk") }]
-    );
-  } else {
-    setBanner("bulk", "info", escapeHtml(msg), [{ label: "知道了", run: () => dropBanner("bulk") }]);
-  }
+  const dir = days > 0 ? `往後 ${days}` : `往前 ${-days}`;
+  setBanner(
+    "bulk",
+    skipped ? "warn" : "info",
+    `已把 <strong>${moved}</strong> 個任務${markersMoved ? `與 ${markersMoved} 個里程碑` : ""}${dir} 天。${
+      skipped ? `另有 ${skipped} 個任務因為缺少日期被略過。` : ""
+    }`,
+    [{ label: "知道了", run: () => dropBanner("bulk") }]
+  );
 }
 
-/* ---------- 從 Excel 貼上匯入（F1） ---------- */
+/* ---------- 從 Excel 貼上匯入 ---------- */
 
 const STATUS_ALIASES = {
   待辦: "upcoming", 未開始: "upcoming", upcoming: "upcoming", todo: "upcoming",
@@ -934,7 +985,7 @@ const STATUS_ALIASES = {
 
 function parseImportText(text) {
   const lines = text.replace(/\r/g, "").split("\n").filter((l) => l.trim());
-  if (!lines.length) return { rows: [], newTracks: [], maxEnd: 1 };
+  if (!lines.length) return { rows: [], newTracks: [] };
 
   const delim = lines.some((l) => l.includes("\t")) ? "\t" : ",";
   let order = ["track", "title", "start", "end", "status", "owner", "note"];
@@ -947,7 +998,7 @@ function parseImportText(text) {
       if (/軌道|分類/.test(c)) return "track";
       if (/任務|項目|名稱/.test(c)) return "title";
       if (/開始/.test(c)) return "start";
-      if (/結束|完成期/.test(c)) return "end";
+      if (/結束|完成日/.test(c)) return "end";
       if (/狀態/.test(c)) return "status";
       if (/負責|owner/i.test(c)) return "owner";
       if (/備註|說明|note/i.test(c)) return "note";
@@ -971,23 +1022,15 @@ function parseImportText(text) {
     if (!rec.title) errors.push("缺少任務名稱");
 
     let trackIndex = null;
-    if (!rec.track) {
-      errors.push("缺少軌道");
-    } else if (trackByLabel[rec.track] != null) {
-      trackIndex = trackByLabel[rec.track];
-    } else if (newTracks.includes(rec.track)) {
-      trackIndex = null; // 稍後建立
-    } else {
-      newTracks.push(rec.track);
-    }
+    if (!rec.track) errors.push("缺少軌道");
+    else if (trackByLabel[rec.track] != null) trackIndex = trackByLabel[rec.track];
+    else if (!newTracks.includes(rec.track)) newTracks.push(rec.track);
 
-    const s = Math.round(Number(rec.start));
-    const e = Math.round(Number(rec.end));
-    const start = Number.isFinite(s) && s >= 1 ? s : 1;
-    const end = Number.isFinite(e) && e >= 1 ? e : start;
-    if (rec.start && !Number.isFinite(s)) errors.push(`開始期間「${rec.start}」不是數字`);
-    if (rec.end && !Number.isFinite(e)) errors.push(`結束期間「${rec.end}」不是數字`);
-    if (end < start) errors.push("結束期間早於開始期間");
+    const s = coerceToISO(rec.start);
+    const e = coerceToISO(rec.end);
+    if (!s.iso) errors.push(rec.start ? `開始日期「${rec.start}」無法辨識` : "缺少開始日期");
+    if (!e.iso) errors.push(rec.end ? `結束日期「${rec.end}」無法辨識` : "缺少結束日期");
+    if (s.iso && e.iso && parseISO(e.iso) < parseISO(s.iso)) errors.push("結束日期早於開始日期");
 
     const statusKey = rec.status.toLowerCase();
     const status = STATUS_ALIASES[rec.status] || STATUS_ALIASES[statusKey] || "upcoming";
@@ -1001,23 +1044,22 @@ function parseImportText(text) {
       trackIndex,
       isNewTrack: trackIndex === null && !!rec.track,
       title: rec.title,
-      start,
-      end: Math.max(start, end),
+      start: s.iso,
+      end: e.iso,
       status,
       owner: rec.owner,
       note: rec.note,
       errors,
-      fatal: errors.some((x) => /缺少|早於/.test(x)),
+      fatal: errors.some((x) => /缺少|無法辨識|早於/.test(x)),
     });
   }
 
-  const maxEnd = rows.filter((r) => !r.fatal).reduce((m, r) => Math.max(m, r.end), 1);
-  return { rows, newTracks, maxEnd };
+  return { rows, newTracks };
 }
 
 function renderImportPreview() {
   const box = $("import-preview");
-  const { rows, newTracks, maxEnd } = importState;
+  const { rows, newTracks } = importState;
   if (!rows.length) {
     box.innerHTML = "";
     $("import-confirm").disabled = true;
@@ -1025,34 +1067,28 @@ function renderImportPreview() {
   }
   const ok = rows.filter((r) => !r.fatal);
   const bad = rows.filter((r) => r.fatal);
-  const n = data.periods.length;
 
-  const head = `<tr><th>#</th><th>軌道</th><th>任務</th><th>期間</th><th>狀態</th><th>負責人</th><th>問題</th></tr>`;
+  const head = `<tr><th>#</th><th>軌道</th><th>任務</th><th>起訖</th><th>工期</th><th>狀態</th><th>負責人</th><th>問題</th></tr>`;
   const body = rows
     .slice(0, 30)
-    .map(
-      (r) => `
+    .map((r) => {
+      const days = r.start && r.end ? dayDiff(parseISO(r.end), parseISO(r.start)) + 1 : "—";
+      return `
       <tr class="${r.fatal ? "row-bad" : r.errors.length ? "row-warn" : ""}">
         <td>${r.line}</td>
         <td>${escapeHtml(r.trackLabel)}${r.isNewTrack ? '<span class="tag-new">新軌道</span>' : ""}</td>
         <td>${escapeHtml(r.title)}</td>
-        <td>${r.start}~${r.end}</td>
+        <td>${escapeHtml(r.start || "?")} ~ ${escapeHtml(r.end || "?")}</td>
+        <td>${days}${days === "—" ? "" : " 天"}</td>
         <td>${STATUS_LABEL[r.status]}</td>
         <td>${escapeHtml(r.owner)}</td>
         <td>${escapeHtml(r.errors.join("；"))}</td>
-      </tr>`
-    )
+      </tr>`;
+    })
     .join("");
 
   const notes = [];
   if (newTracks.length) notes.push(`將新增 ${newTracks.length} 條軌道：${newTracks.join("、")}`);
-  if (maxEnd > n) {
-    notes.push(
-      $("import-extend-periods").checked
-        ? `期間會從 ${n} 期自動增加到 ${maxEnd} 期`
-        : `有任務落在第 ${maxEnd} 期，超過目前 ${n} 期，將被截斷到第 ${n} 期`
-    );
-  }
   if (rows.length > 30) notes.push(`預覽只顯示前 30 列，實際會匯入 ${ok.length} 列`);
 
   box.innerHTML = `
@@ -1065,7 +1101,7 @@ function renderImportPreview() {
 function openImport() {
   $("import-modal").style.display = "flex";
   $("import-textarea").value = "";
-  importState = { rows: [], newTracks: [], maxEnd: 1 };
+  importState = { rows: [], newTracks: [] };
   renderImportPreview();
   $("import-textarea").focus();
 }
@@ -1075,16 +1111,8 @@ function closeImport() {
 }
 
 function applyImport() {
-  const { rows, newTracks, maxEnd } = importState;
-  const extend = $("import-extend-periods").checked;
+  const { rows, newTracks } = importState;
 
-  if (extend && maxEnd > data.periods.length) {
-    while (data.periods.length < maxEnd) {
-      data.periods.push({ index: data.periods.length + 1, date: "" });
-    }
-  }
-
-  // 先建立缺少的軌道
   const labelToIndex = {};
   data.tracks.forEach((t, i) => (labelToIndex[t.label.trim()] = i));
   newTracks.forEach((label) => {
@@ -1098,19 +1126,15 @@ function applyImport() {
     labelToIndex[label] = data.tracks.length - 1;
   });
 
-  const n = data.periods.length;
-  let added = 0, clamped = 0;
+  let added = 0;
   rows.forEach((r) => {
     if (r.fatal) return;
     const ti = labelToIndex[r.trackLabel.trim()];
     if (ti == null) return;
-    const start = Math.min(r.start, n);
-    const end = Math.min(r.end, n);
-    if (r.end > n) clamped++;
     data.tracks[ti].tasks.push({
       title: r.title,
-      start,
-      end: Math.max(start, end),
+      start: r.start,
+      end: r.end,
       status: r.status,
       owner: r.owner,
       note: r.note,
@@ -1127,25 +1151,24 @@ function applyImport() {
   renderEditPanel();
   setBanner(
     "import",
-    clamped ? "warn" : "info",
-    `已匯入 <strong>${added}</strong> 個任務${newTracks.length ? `，新增 ${newTracks.length} 條軌道` : ""}${clamped ? `，其中 ${clamped} 個因期間不足被截斷` : ""}。`,
+    "info",
+    `已匯入 <strong>${added}</strong> 個任務${newTracks.length ? `，新增 ${newTracks.length} 條軌道` : ""}。`,
     [{ label: "知道了", run: () => dropBanner("import") }]
   );
 }
 
-/* ---------- 編輯模式切換（A2 + A6） ---------- */
+/* ---------- 編輯模式切換 ---------- */
 
 async function enterEdit() {
   const btn = $("edit-toggle-btn");
   btn.disabled = true;
   btn.textContent = "檢查最新版本…";
   try {
-    // 從 GitHub API 抓最新內容與 sha。Pages 的靜態檔有 CDN 快取延遲，
-    // 直接拿它當編輯基礎會覆蓋掉別人剛存的東西。
     const fresh = await ghGetFile(filePath);
     if (fresh.json) {
       const migrated = migrateProject(fresh.json);
       const changed = JSON.stringify(migrated) !== JSON.stringify(data);
+      migrationInfo = migrated._migration || null;
       data = migrated;
       editSha = fresh.sha;
       if (changed) {
@@ -1159,7 +1182,7 @@ async function enterEdit() {
     setBanner(
       "sha",
       "warn",
-      `無法向 GitHub 取得最新版本（${escapeHtml(e.message)}）。仍可編輯，但這次儲存<strong>沒有衝突保護</strong>，可能覆蓋他人變更。`,
+      `無法向 GitHub 取得最新版本（${escapeHtml(e.message)}）。仍可編輯，但這次<strong>無法安全儲存</strong>，請重新載入後再試。`,
       [{ label: "知道了", run: () => dropBanner("sha") }]
     );
   } finally {
@@ -1174,6 +1197,7 @@ async function enterEdit() {
   updateDirtyIndicator();
   refreshView();
   renderEditPanel();
+  showMigrationBanner();
 }
 
 function cancelEdit() {
@@ -1202,8 +1226,6 @@ $("save-btn").addEventListener("click", async () => {
     return;
   }
 
-  // 沒有 sha 就無法更新既有檔案（GitHub 會回 422）。與其讓使用者看到
-  // 語意錯誤的「已被他人更新」，直接說明真正原因。
   if (!editSha) {
     setBanner("conflict", "error", "無法取得這個檔案在 GitHub 上的目前版本，因此不能安全地儲存。請重新載入頁面再試。", [
       { label: "重新載入", run: () => window.location.reload() },
@@ -1219,11 +1241,13 @@ $("save-btn").addEventListener("click", async () => {
     editSha = res.sha;
     snapshot = deepClone(data);
     dirty = false;
+    migrationInfo = null;
     clearDraft();
     dropBanner("sha");
+    dropBanner("migration");
     btn.textContent = "已儲存 ✓";
     setTimeout(updateDirtyIndicator, 2000);
-    loadLastUpdated(true); // 剛剛才 commit，要跳過快取
+    loadLastUpdated(true);
   } catch (e) {
     if (e.isConflict) {
       setBanner("conflict", "error", escapeHtml(e.message), [
@@ -1238,7 +1262,16 @@ $("save-btn").addEventListener("click", async () => {
   }
 });
 
-/* ---------- 基準線檢視、列印 ---------- */
+/* ---------- 檢視控制 ---------- */
+
+$("scale-toggle").addEventListener("click", (e) => {
+  const b = e.target.closest("button[data-scale]");
+  if (!b) return;
+  scale = b.dataset.scale;
+  localStorage.setItem(SCALE_KEY, scale);
+  refreshView();
+  scrollToToday();
+});
 
 $("baseline-view-btn").addEventListener("click", () => {
   if (!hasBaseline()) {
@@ -1261,12 +1294,11 @@ $("import-textarea").addEventListener("input", (e) => {
   importState = parseImportText(e.target.value);
   renderImportPreview();
 });
-$("import-extend-periods").addEventListener("change", renderImportPreview);
 $("import-modal").addEventListener("click", (e) => {
   if (e.target.id === "import-modal") closeImport();
 });
 
-/* ---------- G2：最後更新者 ---------- */
+/* ---------- 最後更新者 ---------- */
 
 async function loadLastUpdated(force) {
   const el = $("last-updated");
@@ -1279,7 +1311,33 @@ async function loadLastUpdated(force) {
       when ? escapeHtml(formatDate(when) + " " + when.toTimeString().slice(0, 5)) : ""
     } ・ <a href="${escapeHtml(ghFileHistoryUrl(filePath))}" target="_blank" rel="noopener">變更歷史</a>`;
   } catch (e) {
-    /* 讀不到就不顯示，不影響主功能 */
+    /* 讀不到就不顯示 */
+  }
+}
+
+/* ---------- 遷移提示 ---------- */
+
+// 遷移只發生在記憶體裡，要按「儲存到 GitHub」才會寫回檔案。這點一定要講清楚。
+function showMigrationBanner() {
+  if (!migrationInfo) return;
+  if (migrationInfo.synthesized) {
+    setBanner(
+      "migration",
+      "warn",
+      `這個專案原本是「期間」制排程<strong>且沒有填任何日期</strong>，無法換算成真實日期。
+       目前畫面上的日期是用「第 1 期從 ${escapeHtml(formatDate(mondayOf(today())))} 開始、每期兩週」<strong>推算</strong>出來的，
+       僅供起步用，請逐項確認後再儲存。<br />
+       尚未寫回 GitHub —— 按「儲存到 GitHub」才會生效。`,
+      [{ label: "我知道了", run: () => dropBanner("migration") }]
+    );
+  } else {
+    setBanner(
+      "migration",
+      "info",
+      `已依原本填寫的期間日期，把排程換算成實際起訖日期。請確認後儲存。
+       尚未寫回 GitHub —— 按「儲存到 GitHub」才會生效。`,
+      [{ label: "我知道了", run: () => dropBanner("migration") }]
+    );
   }
 }
 
@@ -1300,13 +1358,15 @@ async function init() {
     return;
   }
 
+  scale = loadScale();
   data = migrateProject(raw);
+  migrationInfo = data._migration || null;
   showBaseline = hasBaseline();
   refreshView();
   scrollToToday();
+  showMigrationBanner();
   loadLastUpdated();
 
-  // A2：偵測上次沒存完的草稿
   const draft = readDraft();
   if (draft && draft.data) {
     const when = new Date(draft.savedAt);

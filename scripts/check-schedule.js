@@ -35,9 +35,18 @@ function collect() {
 
   const items = [];
   const skipped = [];
+  const needDates = [];
   (index.projects || []).forEach((meta) => {
     try {
       const data = migrateProject(readJson(`projects/${meta.id}.json`));
+
+      // 舊的期間制專案若沒有填日期，遷移只能「以執行當天往後推算」出假日期，
+      // 每天跑都會得到不同結果。與其發出會漂移的假到期日，直接列為待確認。
+      if (data._migration && data._migration.synthesized) {
+        needDates.push(meta.name || meta.id);
+        return;
+      }
+
       items.push(...projectReminders(meta, data));
     } catch (e) {
       skipped.push(`${meta.id}（${e.message}）`);
@@ -46,14 +55,24 @@ function collect() {
 
   const relevant = items.filter((r) => r.days <= DUE_DAYS);
   relevant.sort((a, b) => a.days - b.days);
-  return { items: relevant, skipped };
+  return { items: relevant, skipped, needDates };
 }
 
-function buildMarkdown(items, skipped) {
+function footnotes(skipped, needDates) {
+  let md = "";
+  if (needDates.length) {
+    md += `\n> 📌 以下專案還是舊的「期間」制且沒有填日期，無法推算真實到期日，已跳過：${needDates.join(
+      "、"
+    )}。請在網站上開啟該專案、確認自動換算的日期後儲存。\n`;
+  }
+  if (skipped.length) md += `\n> ⚠ 有 ${skipped.length} 個專案無法讀取：${skipped.join("、")}\n`;
+  return md;
+}
+
+function buildMarkdown(items, skipped, needDates) {
   if (!items.length) {
     let md = `## ${ISSUE_TITLE}\n\n目前沒有逾期，也沒有 ${DUE_DAYS} 天內到期的未完成任務。 ✅\n`;
-    if (skipped.length) md += `\n> ⚠ 有 ${skipped.length} 個專案無法讀取：${skipped.join("、")}\n`;
-    return md;
+    return md + footnotes(skipped, needDates);
   }
 
   const overdue = items.filter((r) => r.days < 0);
@@ -67,8 +86,8 @@ function buildMarkdown(items, skipped) {
   let md = `## ${ISSUE_TITLE}\n\n共 ${items.length} 項需要注意（逾期 ${overdue.length} 項、${DUE_DAYS} 天內到期 ${soon.length} 項）。\n`;
   if (overdue.length) md += `\n### 🔴 已逾期\n\n${table(overdue)}\n`;
   if (soon.length) md += `\n### 🟡 ${DUE_DAYS} 天內到期\n\n${table(soon)}\n`;
-  if (skipped.length) md += `\n> ⚠ 有 ${skipped.length} 個專案無法讀取：${skipped.join("、")}\n`;
-  md += `\n<sub>由 GitHub Actions 自動更新。到期日是依各任務「結束期間」對應的日期推算。</sub>\n`;
+  md += footnotes(skipped, needDates);
+  md += `\n<sub>由 GitHub Actions 自動更新。到期日為各任務的結束日期。</sub>\n`;
   return md;
 }
 
@@ -130,8 +149,8 @@ async function postWebhook(text) {
 }
 
 async function main() {
-  const { items, skipped } = collect();
-  const md = buildMarkdown(items, skipped);
+  const { items, skipped, needDates } = collect();
+  const md = buildMarkdown(items, skipped, needDates);
   console.log(md);
 
   if (process.env.GITHUB_STEP_SUMMARY) {
@@ -139,7 +158,8 @@ async function main() {
   }
 
   try {
-    await upsertIssue(md, items.length > 0);
+    // 「有專案待確認日期」本身也值得開一張 Issue 提醒
+    await upsertIssue(md, items.length > 0 || needDates.length > 0);
   } catch (e) {
     console.error(`Issue 更新失敗：${e.message}`);
   }

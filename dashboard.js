@@ -97,7 +97,7 @@ function renderReminders(reminders) {
     slot.innerHTML = `
       <div class="reminders">
         <div class="reminders-head"><h3>近期提醒</h3><span class="reminders-count">0</span></div>
-        <div class="reminders-empty">目前沒有可計算到期日的待辦項目 — 到專案的「編輯」→「期間」填入日期後會顯示在這裡。</div>
+        <div class="reminders-empty">目前沒有未完成且有結束日期的任務。</div>
       </div>`;
     return;
   }
@@ -212,6 +212,7 @@ function openNewModal() {
   $("new-modal").style.display = "flex";
   $("new-name").value = "";
   $("new-desc").value = "";
+  $("new-start").value = toISO(mondayOf(today())); // 預設本週一，範本以週為單位展開
   $("new-name-error").style.display = "none";
   selectedTemplate = PROJECT_TEMPLATES[0].id;
   renderTemplateList();
@@ -231,8 +232,13 @@ function showNameError(msg) {
 async function createProject() {
   const name = $("new-name").value.trim();
   const description = $("new-desc").value.trim();
+  const startISO = $("new-start").value;
   if (!name) {
     showNameError("請填入專案名稱。");
+    return;
+  }
+  if (!parseISO(startISO)) {
+    showNameError("請選擇一個有效的排程起始日期。");
     return;
   }
   const id = slugify(name);
@@ -254,7 +260,7 @@ async function createProject() {
     }
 
     btn.textContent = "建立中…";
-    const project = buildProjectFromTemplate(selectedTemplate, name, description);
+    const project = buildProjectFromTemplate(selectedTemplate, name, description, startISO);
     await ghPutFile(`projects/${id}.json`, project, null, `Create project: ${name}`);
 
     // 專案檔已建立；清單若寫入失敗要明確告知，不要留下看不見的孤兒檔（A8）

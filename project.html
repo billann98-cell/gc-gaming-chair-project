@@ -16,6 +16,10 @@
         <div class="project-progress" id="project-progress"></div>
       </div>
       <div class="header-actions no-print">
+        <div class="scale-toggle" id="scale-toggle" role="group" aria-label="時間軸刻度">
+          <button type="button" data-scale="week">週</button>
+          <button type="button" data-scale="month">月</button>
+        </div>
         <button class="btn-secondary" id="baseline-view-btn" title="顯示或隱藏基準線對比">📏 基準線</button>
         <button class="btn-secondary" id="print-btn" title="列印或另存 PDF">🖨️ 列印</button>
         <button class="btn-secondary" id="edit-toggle-btn">✏️ 編輯</button>
@@ -27,10 +31,11 @@
 
     <div class="gantt-scroll" id="gantt-scroll">
       <div class="gantt">
-        <div class="gantt-corner"></div>
+        <div class="gantt-corner"><span id="range-label"></span></div>
         <div class="gantt-head">
           <div class="marker-row" id="marker-row"></div>
-          <div class="period-row" id="period-row"></div>
+          <div class="scale-groups" id="scale-groups"></div>
+          <div class="scale-cols" id="scale-cols"></div>
         </div>
         <div class="gantt-body" id="gantt-body"></div>
         <div class="marker-lines" id="marker-lines"></div>
@@ -54,7 +59,7 @@
     </footer>
   </div>
 
-  <!-- F1：從 Excel 貼上匯入 -->
+  <!-- 從 Excel 貼上匯入 -->
   <div class="modal-overlay no-print" id="import-modal" style="display:none;">
     <div class="modal">
       <div class="modal-head">
@@ -64,14 +69,10 @@
       <div class="modal-body">
         <p class="modal-hint">
           在 Excel 選取範圍後複製，直接貼到下面。第一列可以是標題列，欄位順序：
-          <code>軌道　任務名稱　開始期間　結束期間　狀態　負責人　備註</code><br />
-          狀態可填「待辦 / 進行中 / 已完成」，負責人與備註可留空。
+          <code>軌道　任務名稱　開始日期　結束日期　狀態　負責人　備註</code><br />
+          日期可用 <code>2026-06-15</code> 或 <code>2026/6/15</code>；狀態可填「待辦 / 進行中 / 已完成」，負責人與備註可留空。
         </p>
-        <textarea id="import-textarea" rows="8" placeholder="產品&#9;DFM&#9;2&#9;3&#9;待辦&#9;王小明&#9;含結構件"></textarea>
-        <label class="checkbox-line">
-          <input type="checkbox" id="import-extend-periods" checked />
-          期間不足時自動增加期間
-        </label>
+        <textarea id="import-textarea" rows="8" placeholder="產品&#9;DFM&#9;2026-06-15&#9;2026-07-03&#9;待辦&#9;王小明&#9;含結構件"></textarea>
         <div class="import-preview" id="import-preview"></div>
       </div>
       <div class="modal-foot">
