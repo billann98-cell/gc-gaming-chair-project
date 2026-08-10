@@ -1,0 +1,36 @@
+name: 排程提醒
+
+# 網站上的「近期提醒」只有打開網頁才看得到。這個 workflow 讓提醒主動送出來。
+on:
+  schedule:
+    # UTC 01:00 = 台北時間 09:00，週一到週五
+    - cron: "0 1 * * 1-5"
+  workflow_dispatch:
+    inputs:
+      days:
+        description: 幾天內到期算「近期」
+        required: false
+        default: "7"
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  remind:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: 檢查排程並發出提醒
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+          DUE_DAYS: ${{ inputs.days || '7' }}
+          # 選填：設定這個 secret 就會另外推到 Teams / Slack / Google Chat
+          WEBHOOK_URL: ${{ secrets.WEBHOOK_URL }}
+        run: node scripts/check-schedule.js
