@@ -309,7 +309,7 @@ function renderGantt() {
         ${prog > 0 && prog < 100 ? `<span class="bar-fill" style="width:${prog}%"></span>` : ""}
         <span class="bar-label">
           ${task.owner ? `<span class="owner-chip" title="負責人：${escapeHtml(task.owner)}">${escapeHtml(task.owner)}</span>` : ""}
-          ${escapeHtml(task.title)}
+          <span class="bar-title">${escapeHtml(task.title)}</span>
           ${subs.length ? `<span class="subtask-progress">(${subs.filter((s) => s.done).length}/${subs.length})</span>` : ""}
           ${(task.links || []).length ? `<span class="link-chip" title="有 ${task.links.length} 個連結">🔗</span>` : ""}
           ${task.note ? `<span class="note-chip" title="${escapeHtml(task.note)}">📝</span>` : ""}

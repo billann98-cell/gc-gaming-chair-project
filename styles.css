@@ -858,8 +858,19 @@ footer {
   min-width: 0;
   overflow: hidden;
   white-space: nowrap;
-  text-overflow: ellipsis;
 }
+
+/* 標題是唯一可壓縮的部分，長條放不下時由它出現刪節號；
+   負責人、進度、基準線差異等徽章一律保持完整，不要被切成一半。
+   （標題若留成裸文字節點會變成匿名 flex item，無法套用 ellipsis。） */
+.bar-title {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.bar-label > :not(.bar-title) { flex-shrink: 0; }
 
 .owner-chip {
   font-size: 0.64rem;
@@ -1110,8 +1121,22 @@ footer {
   margin-top: 10px;
 }
 
-.card-progress .progress-bar { width: 100%; max-width: none; height: 6px; }
-.card-progress .progress-text { font-size: 0.7rem; white-space: nowrap; }
+/* 基礎 .progress-bar 有 flex-shrink: 0，若這裡再給 width: 100%，
+   進度條會吃掉整列又不肯收縮，把後面 nowrap 的百分比文字擠出卡片外。
+   改成可伸縮、由文字先取得所需寬度。 */
+.card-progress .progress-bar {
+  flex: 1 1 auto;
+  width: auto;
+  min-width: 0;
+  max-width: none;
+  height: 6px;
+}
+
+.card-progress .progress-text {
+  font-size: 0.7rem;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
 
 .card-updated {
   margin-top: 8px;
