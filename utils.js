@@ -102,6 +102,63 @@ function formatDate(d) {
   return `${d.getFullYear()}/${pad2(d.getMonth() + 1)}/${pad2(d.getDate())}`;
 }
 
+/* ---------- ISO 週（Daily Task 用） ----------
+   ISO 8601：週一為一週之始，第 1 週是包含當年第一個週四的那一週。
+   Excel 裡的 W33 必須正好對到 2026/08/10–08/14，所以不能用「一年第幾天 / 7」這種近似算法。 */
+
+function isoDayNum(d) {
+  return (d.getDay() + 6) % 7; // 週一=0 … 週日=6
+}
+
+function isoWeekInfo(date) {
+  const d = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+  const monday = addDays(d, -isoDayNum(d));
+  const thursday = addDays(monday, 3); // 該週的週四決定 ISO 年
+  const isoYear = thursday.getFullYear();
+  const week1Monday = isoWeek1Monday(isoYear);
+  const isoWeek = Math.round(dayDiff(monday, week1Monday) / 7) + 1;
+  return { isoYear, isoWeek, monday };
+}
+
+function isoWeek1Monday(isoYear) {
+  const jan4 = new Date(isoYear, 0, 4); // 1/4 一定落在第 1 週
+  return addDays(jan4, -isoDayNum(jan4));
+}
+
+function mondayOfIsoWeek(isoYear, isoWeek) {
+  return addDays(isoWeek1Monday(isoYear), (isoWeek - 1) * 7);
+}
+
+function weeksInIsoYear(isoYear) {
+  const dec28 = new Date(isoYear, 11, 28); // 12/28 一定落在最後一週
+  return isoWeekInfo(dec28).isoWeek;
+}
+
+// 週次加減，會正確跨年（第 1 週往前一週要跳到前一年的最後一週）
+function shiftIsoWeek(isoYear, isoWeek, delta) {
+  let y = isoYear;
+  let w = isoWeek + delta;
+  while (w < 1) {
+    y -= 1;
+    w += weeksInIsoYear(y);
+  }
+  while (w > weeksInIsoYear(y)) {
+    w -= weeksInIsoYear(y);
+    y += 1;
+  }
+  return { isoYear: y, isoWeek: w };
+}
+
+// 只給了「8/11」這種沒有年份的日期時，選離參考日最近的那一年
+function resolveMonthDay(month, day, refDate) {
+  const cands = [refDate.getFullYear() - 1, refDate.getFullYear(), refDate.getFullYear() + 1]
+    .map((y) => new Date(y, month - 1, day))
+    .filter((d) => d.getMonth() === month - 1 && d.getDate() === day);
+  if (!cands.length) return "";
+  cands.sort((a, b) => Math.abs(dayDiff(a, refDate)) - Math.abs(dayDiff(b, refDate)));
+  return toISO(cands[0]);
+}
+
 function formatDateShort(d) {
   return `${d.getMonth() + 1}/${d.getDate()}`;
 }
@@ -516,6 +573,11 @@ if (typeof module !== "undefined" && module.exports) {
     formatDate,
     formatDateShort,
     weekdayLabel,
+    isoWeekInfo,
+    mondayOfIsoWeek,
+    weeksInIsoYear,
+    shiftIsoWeek,
+    resolveMonthDay,
     severityFor,
     badgeLabel,
     taskDays,

@@ -344,6 +344,7 @@ async function init() {
   renderReminders(reminders);
   renderList(nearestDueByProject(reminders));
   loadCardUpdates();
+  initDailyBoard(); // Daily Task 看板與專案清單各自獨立載入
 }
 
 init();

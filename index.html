@@ -20,6 +20,8 @@
 
     <div class="banner-slot no-print" id="banner-slot"></div>
 
+    <div id="daily-slot"></div>
+
     <div id="reminders-slot"></div>
 
     <div class="project-list" id="project-list"></div>
@@ -64,9 +66,33 @@
     </div>
   </div>
 
+  <!-- Daily Task：匯入 Excel 的預覽 -->
+  <div class="modal-overlay no-print" id="dt-modal" style="display:none;">
+    <div class="modal">
+      <div class="modal-head">
+        <h3>匯入 Daily Task</h3>
+        <button class="btn-icon" id="dt-close">✕</button>
+      </div>
+      <div class="modal-body">
+        <p class="modal-hint">
+          上傳你的每日工作 Excel（例如 <code>Bill Schedule.xlsx</code>）。系統會讀取所有名稱像
+          <code>W33</code> 的工作表，依表頭文字自動對應欄位，因此各週欄位位置不同也沒關係。
+        </p>
+        <input type="file" id="dt-file-input" accept=".xlsx" />
+        <div class="dt-preview" id="dt-preview"></div>
+      </div>
+      <div class="modal-foot">
+        <button class="btn-secondary" id="dt-cancel">取消</button>
+        <button class="btn-primary" id="dt-confirm" disabled>確認匯入</button>
+      </div>
+    </div>
+  </div>
+
   <script src="utils.js"></script>
+  <script src="xlsx.js"></script>
   <script src="config.js"></script>
   <script src="templates.js"></script>
+  <script src="daily.js"></script>
   <script src="dashboard.js"></script>
 </body>
 </html>
