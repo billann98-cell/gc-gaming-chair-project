@@ -1656,7 +1656,13 @@ $("save-btn").addEventListener("click", async () => {
     setTimeout(updateDirtyIndicator, 2000);
     loadLastUpdated(true);
   } catch (e) {
-    if (e.isConflict) {
+    if (e.isPermission) {
+      setBanner("conflict", "warn", "寫入被拒絕，正在檢查 Token 權限…");
+      const diag = await ghDiagnoseToken();
+      setBanner("conflict", "error", ghTokenFixHtml(diag), [
+        { label: "知道了", run: () => dropBanner("conflict") },
+      ]);
+    } else if (e.isConflict) {
       setBanner("conflict", "error", escapeHtml(e.message), [
         { label: "重新載入最新版本", run: () => window.location.reload() },
       ]);

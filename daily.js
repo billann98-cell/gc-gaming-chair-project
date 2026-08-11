@@ -396,7 +396,9 @@ async function dtSave() {
       { label: "知道了", run: () => dropBanner("dt-save") },
     ]);
   } catch (e) {
-    if (e.isConflict) {
+    if (e.isPermission) {
+      await dtShowPermissionHelp();
+    } else if (e.isConflict) {
       setBanner("dt-save", "error", escapeHtml(e.message), [
         { label: "重新載入", run: () => window.location.reload() },
       ]);
@@ -404,6 +406,15 @@ async function dtSave() {
       alert(`儲存失敗：${e.message}`);
     }
   }
+}
+
+// 403 時直接跑一次診斷，告訴使用者是哪個設定不對，而不是丟原始訊息
+async function dtShowPermissionHelp() {
+  setBanner("dt-save", "warn", "寫入被拒絕，正在檢查 Token 權限…");
+  const diag = await ghDiagnoseToken();
+  setBanner("dt-save", "error", ghTokenFixHtml(diag), [
+    { label: "知道了", run: () => dropBanner("dt-save") },
+  ]);
 }
 
 /* ---------- 匯入 ---------- */
@@ -456,6 +467,7 @@ async function dtApplyImport() {
 
   const okList = [];
   const failList = [];
+  let permissionDenied = false;
   for (const p of dtImport.weeks) {
     const path = dailyPath(p.week.week.isoYear, p.week.week.isoWeek);
     btn.textContent = `寫入 ${path}…`;
@@ -465,12 +477,22 @@ async function dtApplyImport() {
       okList.push(path);
     } catch (e) {
       failList.push(`${path}（${e.message}）`);
+      // 權限問題對每個檔案都會一樣，不必再試剩下的
+      if (e.isPermission) {
+        permissionDenied = true;
+        break;
+      }
     }
   }
 
   btn.textContent = "確認匯入";
   btn.disabled = false;
   dtCloseImport();
+
+  if (permissionDenied) {
+    await dtShowPermissionHelp();
+    return;
+  }
 
   setBanner(
     "dt-import",

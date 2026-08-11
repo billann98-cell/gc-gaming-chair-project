@@ -295,7 +295,7 @@ async function createProject() {
 
 /* ---------- 事件 ---------- */
 
-$("token-btn").addEventListener("click", () => {
+$("token-btn").addEventListener("click", async () => {
   const current = getToken();
   const next = window.prompt(
     "貼上 GitHub Personal Access Token（留空並確定可清除已儲存的 token）：",
@@ -303,7 +303,19 @@ $("token-btn").addEventListener("click", () => {
   );
   if (next === null) return;
   setToken(next.trim());
-  alert(next.trim() ? "Token 已儲存於本機瀏覽器" : "Token 已清除");
+
+  if (!next.trim()) {
+    dropBanner("token");
+    alert("Token 已清除");
+    return;
+  }
+
+  // 存好之後立刻驗一次權限，不要等到使用者按儲存才發現不能寫
+  setBanner("token", "info", "正在檢查 Token 權限…");
+  const diag = await ghDiagnoseToken();
+  setBanner("token", diag.ok ? "info" : "error", ghTokenFixHtml(diag), [
+    { label: "知道了", run: () => dropBanner("token") },
+  ]);
 });
 
 $("new-project-btn").addEventListener("click", openNewModal);

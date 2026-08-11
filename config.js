@@ -41,6 +41,16 @@ class ConflictError extends Error {
   }
 }
 
+// 權限不足專用錯誤型別。403 的意思是「token 本身有效，但不准做這件事」，
+// 和 401（token 無效）要分開處理，不然使用者會一直重新產生 token 卻沒解決問題。
+class PermissionError extends Error {
+  constructor(message) {
+    super(message);
+    this.name = "PermissionError";
+    this.isPermission = true;
+  }
+}
+
 function ghHeaders(extra) {
   const token = getToken();
   const headers = Object.assign({ Accept: "application/vnd.github+json" }, extra || {});
@@ -83,6 +93,11 @@ async function ghPutFile(path, jsonObj, sha, message) {
     if (res.status === 401) {
       setToken("");
       throw new Error("Token 無效或已過期，已清除，請重新輸入");
+    }
+    if (res.status === 403) {
+      throw new PermissionError(
+        `Token 有效，但沒有寫入這個 repo 的權限（403）。GitHub 原始訊息：${err.message || "Resource not accessible by personal access token"}`
+      );
     }
     if (res.status === 409 || res.status === 422) {
       throw new ConflictError(
@@ -140,6 +155,114 @@ async function ghLatestCommit(path, force) {
     /* 存不進去不影響功能 */
   }
   return value;
+}
+
+/* 診斷 token 到底缺什麼。
+   403「Resource not accessible by personal access token」只說「不准」，
+   沒說是哪個設定不對，所以這裡分開確認三件事：
+   1. token 屬於哪個 GitHub 帳號（很常見的錯是建在另一個帳號上）
+   2. token 看不看得到這個 repo
+   3. token 有沒有寫入（push）權限 —— 對應 fine-grained 的 Contents: Read and write */
+async function ghDiagnoseToken() {
+  const token = getToken();
+  if (!token) return { ok: false, code: "no-token", message: "還沒設定 token。" };
+
+  let me = null;
+  try {
+    const res = await fetch(`${GH_API}/user`, { headers: ghHeaders(), cache: "no-cache" });
+    if (res.status === 401) {
+      return { ok: false, code: "invalid", message: "Token 無效或已過期，請重新產生一個。" };
+    }
+    if (res.ok) me = await res.json();
+  } catch (e) {
+    return { ok: false, code: "network", message: `無法連上 GitHub：${e.message}` };
+  }
+
+  let repo = null;
+  try {
+    const res = await fetch(`${GH_API}/repos/${REPO_OWNER}/${REPO_NAME}`, {
+      headers: ghHeaders(),
+      cache: "no-cache",
+    });
+    if (res.ok) repo = await res.json();
+  } catch (e) {
+    /* 下面會依 repo 是否為 null 判斷 */
+  }
+
+  const login = me && me.login;
+  const canPush = !!(repo && repo.permissions && repo.permissions.push);
+
+  if (!repo) {
+    return {
+      ok: false,
+      code: "no-repo",
+      login,
+      message: `這個 token 看不到 ${REPO_OWNER}/${REPO_NAME}。請確認 token 的「Repository access」有選到這個 repo。`,
+    };
+  }
+
+  if (login && login.toLowerCase() !== REPO_OWNER.toLowerCase() && !canPush) {
+    return {
+      ok: false,
+      code: "wrong-account",
+      login,
+      message: `這個 token 屬於帳號「${login}」，但 repo 的擁有者是「${REPO_OWNER}」，而且該帳號沒有寫入權限。請改用 ${REPO_OWNER} 這個帳號登入 GitHub 後再產生 token。`,
+    };
+  }
+
+  if (!canPush) {
+    return {
+      ok: false,
+      code: "no-write",
+      login,
+      message: `Token（帳號 ${login || "未知"}）可以讀取這個 repo，但沒有寫入權限。請把「Permissions → Repository permissions → Contents」改成 Read and write。`,
+    };
+  }
+
+  return { ok: true, code: "ok", login, message: `Token 正常（帳號 ${login}，具備寫入權限）。` };
+}
+
+// 依診斷結果產生「該去改哪裡」的說明（純字串，不碰 DOM）。
+// 指引必須對症下藥：token 過期時叫人去改 Contents 權限只會讓人繞遠路。
+function ghTokenFixHtml(diag) {
+  const settings = `<a href="https://github.com/settings/personal-access-tokens" target="_blank" rel="noopener">Fine-grained tokens 設定頁</a>`;
+  const repoName = `<code>${REPO_OWNER}/${REPO_NAME}</code>`;
+
+  if (diag.code === "ok") return `✅ ${diag.message}`;
+
+  const createSteps = `
+    <ol>
+      <li>到 ${settings} 按 <strong>Generate new token</strong></li>
+      <li><strong>Resource owner</strong> 選 <strong>${REPO_OWNER}</strong></li>
+      <li><strong>Repository access</strong> → <em>Only select repositories</em> → 加入 ${repoName}</li>
+      <li><strong>Permissions → Repository permissions → Contents</strong> → <strong>Read and write</strong></li>
+      <li>產生後回到這裡按「🔑 GitHub Token」貼上，系統會自動檢查</li>
+    </ol>`;
+
+  const fixSteps = `
+    <ol>
+      <li>到 ${settings} 點開你正在用的那個 token（<strong>不必重新產生</strong>，改完按 Update 即生效）</li>
+      <li><strong>Repository access</strong> → <em>Only select repositories</em> → 確認有 ${repoName}</li>
+      <li><strong>Permissions → Repository permissions → Contents</strong> → 改成 <strong>Read and write</strong></li>
+      <li>回到這裡按「🔑 GitHub Token」重新貼一次以重新檢查</li>
+    </ol>
+    <p class="hint">Fine-grained token 預設不含任何權限，Contents 一定要手動設定。</p>`;
+
+  const accountSteps = `
+    <ol>
+      <li>先用 <strong>${REPO_OWNER}</strong> 這個帳號登入 GitHub（不是目前這個帳號）</li>
+      <li>再到 ${settings} 產生 token，Resource owner 選 <strong>${REPO_OWNER}</strong></li>
+      <li>Repository access 加入 ${repoName}、Contents 設為 Read and write</li>
+    </ol>`;
+
+  const body =
+    diag.code === "no-token" || diag.code === "invalid"
+      ? createSteps
+      : diag.code === "wrong-account"
+      ? accountSteps
+      : fixSteps;
+
+  return `<strong>${diag.message}</strong>${body}`;
 }
 
 function ghFileHistoryUrl(path) {
