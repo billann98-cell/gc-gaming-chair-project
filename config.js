@@ -75,6 +75,10 @@ async function ghGetFile(path) {
 
 // 寫檔。sha 必須是「呼叫端載入這份內容時拿到的那個 sha」，
 // 這樣 GitHub 才能替我們做樂觀鎖：若期間有人改過，會回 409/422 而不是默默覆蓋。
+function sleep(ms) {
+  return new Promise((r) => setTimeout(r, ms));
+}
+
 async function ghPutFile(path, jsonObj, sha, message) {
   const token = ensureToken();
   if (!token) throw new Error("沒有提供 token，取消儲存");
@@ -82,32 +86,56 @@ async function ghPutFile(path, jsonObj, sha, message) {
   const body = { message, content: b64EncodeUtf8(JSON.stringify(jsonObj, null, 2)), branch: BRANCH };
   if (sha) body.sha = sha;
 
-  const res = await fetch(`${GH_API}/repos/${REPO_OWNER}/${REPO_NAME}/contents/${path}`, {
-    method: "PUT",
-    headers: ghHeaders({ "Content-Type": "application/json" }),
-    body: JSON.stringify(body),
-  });
+  const ATTEMPTS = 3;
+  for (let attempt = 1; attempt <= ATTEMPTS; attempt++) {
+    const res = await fetch(`${GH_API}/repos/${REPO_OWNER}/${REPO_NAME}/contents/${path}`, {
+      method: "PUT",
+      headers: ghHeaders({ "Content-Type": "application/json" }),
+      body: JSON.stringify(body),
+    });
 
-  if (!res.ok) {
+    if (res.ok) {
+      const out = await res.json();
+      return { sha: out.content && out.content.sha, commit: out.commit };
+    }
+
     const err = await res.json().catch(() => ({}));
+
     if (res.status === 401) {
       setToken("");
       throw new Error("Token 無效或已過期，已清除，請重新輸入");
     }
-    if (res.status === 403) {
-      throw new PermissionError(
-        `Token 有效，但沒有寫入這個 repo 的權限（403）。GitHub 原始訊息：${err.message || "Resource not accessible by personal access token"}`
-      );
-    }
+
     if (res.status === 409 || res.status === 422) {
       throw new ConflictError(
         `${path} 已被其他人（或另一個分頁）更新，你的版本是舊的。請重新載入取得最新內容後再改一次。`
       );
     }
+
+    // 403 有兩種完全不同的意思：權限不足，或被暫時限流。
+    // 另外剛調整完 token 權限時 GitHub 可能還沒生效，所以先重試再放棄。
+    if (res.status === 403 || res.status === 429) {
+      const isRateLimit =
+        res.status === 429 ||
+        /rate limit|abuse|secondary/i.test(err.message || "") ||
+        res.headers.get("x-ratelimit-remaining") === "0";
+      if (attempt < ATTEMPTS) {
+        const retryAfter = Number(res.headers.get("retry-after"));
+        await sleep(retryAfter > 0 ? retryAfter * 1000 : attempt * 2000);
+        continue;
+      }
+      if (isRateLimit) {
+        throw new PermissionError(
+          `被 GitHub 暫時限流，不是權限問題。請等一兩分鐘再試。原始訊息：${err.message || ""}`
+        );
+      }
+      throw new PermissionError(
+        `寫入 ${path} 被拒絕（403）。GitHub 原始訊息：${err.message || "Resource not accessible by personal access token"}`
+      );
+    }
+
     throw new Error(`儲存 ${path} 失敗 (${res.status}) ${err.message || ""}`);
   }
-  const out = await res.json();
-  return { sha: out.content && out.content.sha, commit: out.commit };
 }
 
 // 需要覆蓋既有檔案又「不在意」原本內容時才用（例如把專案加進 index.json 前已先讀過）。
@@ -157,12 +185,28 @@ async function ghLatestCommit(path, force) {
   return value;
 }
 
-/* 診斷 token 到底缺什麼。
-   403「Resource not accessible by personal access token」只說「不准」，
-   沒說是哪個設定不對，所以這裡分開確認三件事：
-   1. token 屬於哪個 GitHub 帳號（很常見的錯是建在另一個帳號上）
-   2. token 看不看得到這個 repo
-   3. token 有沒有寫入（push）權限 —— 對應 fine-grained 的 Contents: Read and write */
+/* 診斷 token 到底缺什麼。403「Resource not accessible by personal access token」
+   只說「不准」，沒說是哪個設定不對，所以這裡逐項確認。
+
+   重要：不要用 GET /repos 回傳的 permissions.push 判斷寫入能力。
+   那個欄位反映的是「這個帳號在 repo 上的角色」，repo owner 永遠是 true，
+   完全不受 fine-grained token 實際授予的 Contents 權限影響。曾因此出現
+   「寫入被拒絕」與「具備寫入權限」互相矛盾的診斷。
+
+   真正可靠的方式是實際試寫一次：POST /git/blobs 需要 Contents: write，
+   但只會產生一個沒有被任何 commit 或 ref 引用的物件，不會出現在檔案樹、
+   不會進歷史，之後由 GitHub 自行回收。 */
+async function ghProbeWrite() {
+  const res = await fetch(`${GH_API}/repos/${REPO_OWNER}/${REPO_NAME}/git/blobs`, {
+    method: "POST",
+    headers: ghHeaders({ "Content-Type": "application/json" }),
+    body: JSON.stringify({ content: "token write probe", encoding: "utf-8" }),
+  });
+  if (res.status === 201) return { canWrite: true, status: 201 };
+  const body = await res.json().catch(() => ({}));
+  return { canWrite: false, status: res.status, message: body.message || "" };
+}
+
 async function ghDiagnoseToken() {
   const token = getToken();
   if (!token) return { ok: false, code: "no-token", message: "還沒設定 token。" };
@@ -177,22 +221,19 @@ async function ghDiagnoseToken() {
   } catch (e) {
     return { ok: false, code: "network", message: `無法連上 GitHub：${e.message}` };
   }
+  const login = me && me.login;
 
-  let repo = null;
+  let repoVisible = false;
   try {
     const res = await fetch(`${GH_API}/repos/${REPO_OWNER}/${REPO_NAME}`, {
       headers: ghHeaders(),
       cache: "no-cache",
     });
-    if (res.ok) repo = await res.json();
+    repoVisible = res.ok;
   } catch (e) {
-    /* 下面會依 repo 是否為 null 判斷 */
+    return { ok: false, code: "network", login, message: `無法連上 GitHub：${e.message}` };
   }
-
-  const login = me && me.login;
-  const canPush = !!(repo && repo.permissions && repo.permissions.push);
-
-  if (!repo) {
+  if (!repoVisible) {
     return {
       ok: false,
       code: "no-repo",
@@ -201,25 +242,48 @@ async function ghDiagnoseToken() {
     };
   }
 
-  if (login && login.toLowerCase() !== REPO_OWNER.toLowerCase() && !canPush) {
-    return {
-      ok: false,
-      code: "wrong-account",
-      login,
-      message: `這個 token 屬於帳號「${login}」，但 repo 的擁有者是「${REPO_OWNER}」，而且該帳號沒有寫入權限。請改用 ${REPO_OWNER} 這個帳號登入 GitHub 後再產生 token。`,
-    };
+  let probe;
+  try {
+    probe = await ghProbeWrite();
+  } catch (e) {
+    return { ok: false, code: "network", login, message: `無法連上 GitHub：${e.message}` };
   }
 
-  if (!canPush) {
+  if (probe.canWrite) {
+    return { ok: true, code: "ok", login, message: `Token 正常（帳號 ${login}），實際試寫成功。` };
+  }
+
+  if (probe.status === 403) {
+    if (/rate limit|abuse|secondary/i.test(probe.message)) {
+      return {
+        ok: false,
+        code: "rate-limit",
+        login,
+        message: `被 GitHub 暫時限流（不是權限問題）。請等一兩分鐘再試。原始訊息：${probe.message}`,
+      };
+    }
+    if (login && login.toLowerCase() !== REPO_OWNER.toLowerCase()) {
+      return {
+        ok: false,
+        code: "wrong-account",
+        login,
+        message: `這個 token 屬於帳號「${login}」，但 repo 擁有者是「${REPO_OWNER}」，且無法寫入。請改用 ${REPO_OWNER} 帳號產生 token。`,
+      };
+    }
     return {
       ok: false,
       code: "no-write",
       login,
-      message: `Token（帳號 ${login || "未知"}）可以讀取這個 repo，但沒有寫入權限。請把「Permissions → Repository permissions → Contents」改成 Read and write。`,
+      message: `Token（帳號 ${login || "未知"}）讀得到這個 repo，但實際試寫被拒絕 —— 表示「Contents」還不是 Read and write。`,
     };
   }
 
-  return { ok: true, code: "ok", login, message: `Token 正常（帳號 ${login}，具備寫入權限）。` };
+  return {
+    ok: false,
+    code: "unknown",
+    login,
+    message: `試寫失敗（HTTP ${probe.status}）${probe.message ? "：" + probe.message : ""}`,
+  };
 }
 
 // 依診斷結果產生「該去改哪裡」的說明（純字串，不碰 DOM）。
@@ -254,6 +318,11 @@ function ghTokenFixHtml(diag) {
       <li>再到 ${settings} 產生 token，Resource owner 選 <strong>${REPO_OWNER}</strong></li>
       <li>Repository access 加入 ${repoName}、Contents 設為 Read and write</li>
     </ol>`;
+
+  // 限流不是設定問題，叫人去改權限只會白忙一場
+  if (diag.code === "rate-limit") {
+    return `<strong>${diag.message}</strong><p class="hint">權限設定不用動，等一下再按一次匯入即可。</p>`;
+  }
 
   const body =
     diag.code === "no-token" || diag.code === "invalid"

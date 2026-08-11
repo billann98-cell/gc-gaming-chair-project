@@ -468,16 +468,21 @@ async function dtApplyImport() {
   const okList = [];
   const failList = [];
   let permissionDenied = false;
-  for (const p of dtImport.weeks) {
+  const weeks = dtImport.weeks;
+
+  for (let i = 0; i < weeks.length; i++) {
+    const p = weeks[i];
     const path = dailyPath(p.week.week.isoYear, p.week.week.isoWeek);
     btn.textContent = `寫入 ${path}…`;
     try {
       const existing = await ghGetFile(path).catch(() => ({ sha: null }));
       await ghPutFile(path, p.week, existing.sha || null, `Import daily tasks from Excel: ${p.sheetName}`);
       okList.push(path);
+      // 連續對同一個 repo 快速寫入容易觸發 GitHub 的次級限流，稍微間隔
+      if (i < weeks.length - 1) await sleep(900);
     } catch (e) {
       failList.push(`${path}（${e.message}）`);
-      // 權限問題對每個檔案都會一樣，不必再試剩下的
+      // 權限問題對每個檔案都一樣，不必再試剩下的
       if (e.isPermission) {
         permissionDenied = true;
         break;
@@ -489,17 +494,24 @@ async function dtApplyImport() {
   btn.disabled = false;
   dtCloseImport();
 
-  if (permissionDenied) {
-    await dtShowPermissionHelp();
-    return;
+  // 即使中途失敗也要把已寫入的結果講清楚並刷新看板，
+  // 否則使用者看不出到底成功了幾筆（之前這裡直接 return，什麼都不顯示）。
+  if (okList.length) {
+    setBanner(
+      "dt-import",
+      failList.length ? "warn" : "info",
+      `已匯入 ${okList.length} 個週次：${okList.map((p) => `<code>${escapeHtml(p)}</code>`).join("、")}${
+        failList.length ? `<br />另有 ${failList.length} 個未寫入：${failList.map(escapeHtml).join("；")}` : ""
+      }`,
+      [{ label: "知道了", run: () => dropBanner("dt-import") }]
+    );
+  } else if (failList.length && !permissionDenied) {
+    setBanner("dt-import", "error", `匯入失敗：${failList.map(escapeHtml).join("；")}`, [
+      { label: "知道了", run: () => dropBanner("dt-import") },
+    ]);
   }
 
-  setBanner(
-    "dt-import",
-    failList.length ? "warn" : "info",
-    `已匯入 ${okList.length} 個週次${failList.length ? `，${failList.length} 個失敗：${failList.map(escapeHtml).join("；")}` : ""}。`,
-    [{ label: "知道了", run: () => dropBanner("dt-import") }]
-  );
+  if (permissionDenied) await dtShowPermissionHelp();
 
   const now = isoWeekInfo(today());
   await dtGoto(now.isoYear, now.isoWeek);
