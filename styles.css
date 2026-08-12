@@ -1481,10 +1481,14 @@ footer {
 
 .daily-grid-scroll { overflow-x: auto; }
 
+/* 欄寬與 min-width 由同一組變數推導，避免兩邊各寫死數字而不一致
+   （曾因 min-width 比欄位總和小 34px，導致格子溢出 grid 自己的框） */
 .daily-grid {
+  --dt-label-w: 84px;
+  --dt-day-min: 150px;
   display: grid;
-  grid-template-columns: 84px repeat(5, minmax(150px, 1fr));
-  min-width: 800px;
+  grid-template-columns: var(--dt-label-w) repeat(5, minmax(var(--dt-day-min), 1fr));
+  min-width: calc(var(--dt-label-w) + 5 * var(--dt-day-min));
 }
 
 .dg-corner { border-bottom: 1px solid var(--border); }
@@ -1524,6 +1528,24 @@ footer {
 }
 
 .dg-cell.today { background: color-mix(in srgb, var(--today) 6%, transparent); }
+
+/* 整週共用的一格（每週主題）：橫跨五天，項目橫向排列並自動換行 */
+.dg-span {
+  grid-column: span 5;
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 5px;
+  background: color-mix(in srgb, var(--accent) 4%, transparent);
+}
+
+.dg-span .dt-chip { background: var(--card-bg); }
+
+.dg-span-empty {
+  font-size: 0.72rem;
+  color: var(--muted);
+  padding: 2px 4px;
+}
 
 .dt-chip {
   display: flex;
@@ -1593,7 +1615,10 @@ footer {
 }
 
 @media (max-width: 640px) {
-  .daily-grid { grid-template-columns: 68px repeat(5, minmax(130px, 1fr)); }
+  .daily-grid {
+    --dt-label-w: 68px;
+    --dt-day-min: 130px;
+  }
 }
 
 /* Excel 範本上傳 */

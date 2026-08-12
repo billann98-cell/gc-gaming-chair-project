@@ -4,8 +4,11 @@
 
 const DAILY_SCHEMA_VERSION = 1;
 
+// spansWeek：這一類不屬於某一天，整週共用一格。
+// Excel 裡「Weekly Task」只寫在 MON 欄，但它的語意是整週的主題，
+// 只顯示在星期一會誤導。其他三類都是確實綁定某一天的。
 const DAILY_CATEGORIES = [
-  { key: "weekly", label: "每週主題", excel: /^weekly\s*task$/i },
+  { key: "weekly", label: "每週主題", excel: /^weekly\s*task$/i, spansWeek: true },
   { key: "daily", label: "每日任務", excel: /^daily\s*task$/i },
   { key: "rush", label: "急件", excel: /^rush\s*task$/i },
   { key: "meeting", label: "會議", excel: /^meeting\s*\/?\s*call$/i },
@@ -284,12 +287,22 @@ function renderDailyBoard(exists) {
   }).join("");
 
   const rows = DAILY_CATEGORIES.map((cat) => {
+    const catCell = `<div class="dg-cat" data-cat="${cat.key}">${cat.label}</div>`;
+
+    // 整週共用的類別：不分天，一格橫跨週一到週五
+    if (cat.spansWeek) {
+      const items = (dtWeek.entries || []).filter((e) => e.category === cat.key);
+      return `${catCell}<div class="dg-cell dg-span">${
+        items.length ? items.map(dtEntryChip).join("") : '<span class="dg-span-empty">本週沒有設定主題</span>'
+      }</div>`;
+    }
+
     const cells = DAY_KEYS.map((d) => {
       const items = (dtWeek.entries || []).filter((e) => e.category === cat.key && e.day === d);
       const isToday = todayKey === d && dtIsCurrentWeek();
       return `<div class="dg-cell${isToday ? " today" : ""}">${items.map(dtEntryChip).join("")}</div>`;
     }).join("");
-    return `<div class="dg-cat" data-cat="${cat.key}">${cat.label}</div>${cells}`;
+    return `${catCell}${cells}`;
   }).join("");
 
   const overdueHtml = st.overdueList.length
