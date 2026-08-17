@@ -234,6 +234,36 @@ header p.desc {
   pointer-events: none;
 }
 
+/* 週末與國定假日的底色帶。在最底層，長條會蓋在上面。 */
+.day-bands {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.day-band {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+}
+
+.day-band.weekend { background: color-mix(in srgb, var(--muted) 8%, transparent); }
+.day-band.holiday { background: color-mix(in srgb, var(--danger) 12%, transparent); }
+
+.legend-swatch.weekend { background: color-mix(in srgb, var(--muted) 22%, transparent); }
+.legend-swatch.holiday { background: color-mix(in srgb, var(--danger) 30%, transparent); }
+
+/* 工期徽章：日曆天 + 工作日 */
+.days-badge em {
+  font-style: normal;
+  margin-left: 4px;
+  padding: 0 4px;
+  border-radius: 4px;
+  background: var(--border);
+  color: var(--muted);
+  font-size: 0.66rem;
+}
+
 .col-line {
   position: absolute;
   top: 0;

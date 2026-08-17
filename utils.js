@@ -300,6 +300,66 @@ function todayPosition(tl) {
   };
 }
 
+/* ---------- 工作日與假日 ---------- */
+
+function isWeekend(d) {
+  const w = d.getDay();
+  return w === 0 || w === 6;
+}
+
+// 把假日區間展開成一組 ISO 日期，方便逐日查詢
+function buildNonWorkingIndex(ranges) {
+  const map = new Map(); // ISO -> label
+  (ranges || []).forEach((r) => {
+    const s = parseISO(r.start);
+    const e = parseISO(r.end || r.start);
+    if (!s || !e) return;
+    for (let d = s; d <= e; d = addDays(d, 1)) {
+      if (!map.has(toISO(d))) map.set(toISO(d), r.label || "假日");
+    }
+  });
+  return map;
+}
+
+// 含頭含尾的日曆天
+function calendarDays(startISO, endISO) {
+  const s = parseISO(startISO), e = parseISO(endISO);
+  if (!s || !e) return 0;
+  return dayDiff(e, s) + 1;
+}
+
+// 扣掉週末與假日之後真正能工作的天數
+function workingDays(startISO, endISO, nonWorking) {
+  const s = parseISO(startISO), e = parseISO(endISO);
+  if (!s || !e) return 0;
+  let n = 0;
+  for (let d = s; d <= e; d = addDays(d, 1)) {
+    if (isWeekend(d)) continue;
+    if (nonWorking && nonWorking.has(toISO(d))) continue;
+    n++;
+  }
+  return n;
+}
+
+// 一段期間內落入的非工作日明細，用於說明「為什麼只剩這麼幾天」
+function nonWorkingBreakdown(startISO, endISO, nonWorking) {
+  const s = parseISO(startISO), e = parseISO(endISO);
+  if (!s || !e) return { weekend: 0, holiday: 0, labels: [] };
+  let weekend = 0, holiday = 0;
+  const labels = new Set();
+  for (let d = s; d <= e; d = addDays(d, 1)) {
+    const iso = toISO(d);
+    const isHol = nonWorking && nonWorking.has(iso);
+    if (isHol) {
+      holiday++;
+      labels.add(nonWorking.get(iso));
+    } else if (isWeekend(d)) {
+      weekend++;
+    }
+  }
+  return { weekend, holiday, labels: [...labels] };
+}
+
 /* ---------- 進度 ---------- */
 
 function taskProgress(task) {

@@ -1,0 +1,200 @@
+{
+  "schemaVersion": 3,
+  "project": {
+    "name": "SH400",
+    "description": "腳踏外觀提案 → MP 驗貨與出貨（2026/08 – 2027/04）"
+  },
+  "phaseMarkers": [
+    { "label": "T0 完成", "date": "2026-11-30", "highlight": true },
+    { "label": "T1", "date": "2026-12-26", "highlight": false },
+    { "label": "PVT", "date": "2027-02-01", "highlight": false },
+    { "label": "金樣簽樣", "date": "2027-02-28", "highlight": false },
+    { "label": "MP 生產", "date": "2027-03-22", "highlight": false },
+    { "label": "出貨", "date": "2027-04-03", "highlight": true }
+  ],
+  "tracks": [
+    {
+      "key": "product",
+      "label": "產品開發",
+      "color": "orange",
+      "tasks": [
+        {
+          "title": "腳踏外觀提案",
+          "start": "2026-08-11",
+          "end": "2026-08-25",
+          "status": "upcoming",
+          "owner": "",
+          "note": "提案與修提",
+          "links": [],
+          "baseline": null,
+          "subtasks": []
+        },
+        {
+          "title": "3D圖紙製作",
+          "start": "2026-08-26",
+          "end": "2026-09-10",
+          "status": "upcoming",
+          "owner": "",
+          "note": "待泡棉款式確認",
+          "links": [],
+          "baseline": null,
+          "subtasks": []
+        },
+        {
+          "title": "模型製作 / 泡棉坐墊打樣",
+          "start": "2026-09-11",
+          "end": "2026-09-23",
+          "status": "upcoming",
+          "owner": "",
+          "note": "",
+          "links": [],
+          "baseline": null,
+          "subtasks": []
+        },
+        {
+          "title": "手板討論",
+          "start": "2026-09-24",
+          "end": "2026-09-28",
+          "status": "upcoming",
+          "owner": "",
+          "note": "",
+          "links": [],
+          "baseline": null,
+          "subtasks": []
+        },
+        {
+          "title": "外觀/結構修改 (10月連假)",
+          "start": "2026-09-29",
+          "end": "2026-10-10",
+          "status": "upcoming",
+          "owner": "",
+          "note": "",
+          "links": [],
+          "baseline": null,
+          "subtasks": []
+        },
+        {
+          "title": "DFM",
+          "start": "2026-10-11",
+          "end": "2026-10-21",
+          "status": "upcoming",
+          "owner": "",
+          "note": "對手件評估調整",
+          "links": [],
+          "baseline": null,
+          "subtasks": []
+        },
+        {
+          "title": "開模 (T0完成) / 包裝設計 / 修模",
+          "start": "2026-10-22",
+          "end": "2026-11-30",
+          "status": "upcoming",
+          "owner": "",
+          "note": "如有對手件需要修模，需同步進行",
+          "links": [],
+          "baseline": null,
+          "subtasks": []
+        },
+        {
+          "title": "T0討論、修模",
+          "start": "2026-12-01",
+          "end": "2026-12-14",
+          "status": "upcoming",
+          "owner": "",
+          "note": "",
+          "links": [],
+          "baseline": null,
+          "subtasks": []
+        },
+        {
+          "title": "咬花",
+          "start": "2026-12-15",
+          "end": "2026-12-25",
+          "status": "upcoming",
+          "owner": "",
+          "note": "",
+          "links": [],
+          "baseline": null,
+          "subtasks": []
+        },
+        {
+          "title": "生產T1 (DVT)",
+          "start": "2026-12-26",
+          "end": "2027-01-05",
+          "status": "upcoming",
+          "owner": "",
+          "note": "",
+          "links": [],
+          "baseline": null,
+          "subtasks": []
+        },
+        {
+          "title": "T1驗證 / 產品測試 / ASUS & DVT驗證",
+          "start": "2027-01-06",
+          "end": "2027-01-31",
+          "status": "upcoming",
+          "owner": "",
+          "note": "華碩內部測試",
+          "links": [],
+          "baseline": null,
+          "subtasks": []
+        },
+        {
+          "title": "小試產PVT 與 金樣生產",
+          "start": "2027-02-01",
+          "end": "2027-02-24",
+          "status": "upcoming",
+          "owner": "",
+          "note": "2/4-2/14 春節假期",
+          "links": [],
+          "baseline": null,
+          "subtasks": []
+        },
+        {
+          "title": "金樣會議與簽樣",
+          "start": "2027-02-25",
+          "end": "2027-02-28",
+          "status": "upcoming",
+          "owner": "",
+          "note": "",
+          "links": [],
+          "baseline": null,
+          "subtasks": []
+        },
+        {
+          "title": "MP備料",
+          "start": "2027-03-01",
+          "end": "2027-03-21",
+          "status": "upcoming",
+          "owner": "",
+          "note": "如設計變化少，可提早先備料",
+          "links": [],
+          "baseline": null,
+          "subtasks": []
+        },
+        {
+          "title": "MP生產",
+          "start": "2027-03-22",
+          "end": "2027-03-31",
+          "status": "upcoming",
+          "owner": "",
+          "note": "",
+          "links": [],
+          "baseline": null,
+          "subtasks": []
+        },
+        {
+          "title": "MP驗貨與出貨",
+          "start": "2027-03-31",
+          "end": "2027-04-03",
+          "status": "upcoming",
+          "owner": "",
+          "note": "與 MP生產 重疊 3/31 一天，依原始排程表",
+          "links": [],
+          "baseline": null,
+          "subtasks": []
+        }
+      ]
+    }
+  ]
+}
