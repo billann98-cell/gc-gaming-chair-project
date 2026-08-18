@@ -326,7 +326,10 @@ function renderGantt() {
         <span class="track-mini-pct">${agg.pct}%</span>
       </span>`;
     trackBlock.appendChild(title);
-    track.tasks.forEach(() => {
+
+    // 日期不重疊的任務共用一列，整張圖才不會被拉得很高
+    const lanes = packIntoLanes(track.tasks);
+    lanes.forEach(() => {
       const spacer = document.createElement("div");
       spacer.className = "row-spacer";
       trackBlock.appendChild(spacer);
@@ -339,71 +342,10 @@ function renderGantt() {
     headerSpacer.className = "row-spacer";
     rows.appendChild(headerSpacer);
 
-    track.tasks.forEach((task, tj) => {
+    lanes.forEach((lane) => {
       const row = document.createElement("div");
       row.className = "task-row";
-
-      const geo = taskGeometry(task, tl);
-      if (!geo) {
-        const bad = document.createElement("div");
-        bad.className = "task-bar invalid";
-        bad.dataset.color = track.color;
-        bad.style.left = "0%";
-        bad.title = taskTooltip(track, task);
-        bad.innerHTML = `<span class="bar-label"><span class="bar-title">⚠ ${escapeHtml(task.title || "未命名")}（缺少日期）</span></span>`;
-        row.appendChild(bad);
-        rows.appendChild(row);
-        return;
-      }
-
-      // 基準線幽靈條
-      if (showBaseline && task.baseline) {
-        const bgeo = taskGeometry(task.baseline, tl);
-        if (bgeo && (bgeo.left !== geo.left || bgeo.width !== geo.width)) {
-          const ghost = document.createElement("div");
-          ghost.className = "baseline-bar";
-          ghost.style.left = pct(bgeo.left);
-          ghost.style.width = pct(bgeo.width);
-          ghost.title = `基準線：${formatDate(parseISO(task.baseline.start))} ~ ${formatDate(parseISO(task.baseline.end))}`;
-          row.appendChild(ghost);
-        }
-      }
-
-      const bar = document.createElement("div");
-      bar.className = "task-bar";
-      bar.dataset.color = track.color;
-      bar.dataset.status = task.status;
-      bar.style.left = pct(geo.left);
-      bar.style.width = pct(geo.width);
-      bar.title = taskTooltip(track, task);
-
-      const subs = task.subtasks || [];
-      const prog = Math.round(taskProgress(task) * 100);
-      const bd = baselineDelta(task);
-      bar.innerHTML = `
-        ${prog > 0 && prog < 100 ? `<span class="bar-fill" style="width:${prog}%"></span>` : ""}
-        <span class="bar-label">
-          ${task.owner ? `<span class="owner-chip" title="負責人：${escapeHtml(task.owner)}">${escapeHtml(task.owner)}</span>` : ""}
-          <span class="bar-title">${escapeHtml(task.title)}</span>
-          ${subs.length ? `<span class="subtask-progress">(${subs.filter((s) => s.done).length}/${subs.length})</span>` : ""}
-          ${(task.links || []).length ? `<span class="link-chip" title="有 ${task.links.length} 個連結">🔗</span>` : ""}
-          ${task.note ? `<span class="note-chip" title="${escapeHtml(task.note)}">📝</span>` : ""}
-          ${bd && showBaseline ? `<span class="delta-chip ${bd.direction}">${escapeHtml(bd.text)}</span>` : ""}
-        </span>`;
-
-      if (editMode) {
-        bar.classList.add("editable");
-        ["start", "end"].forEach((which) => {
-          const h = document.createElement("span");
-          h.className = `bar-handle ${which}`;
-          h.dataset.handle = which;
-          bar.appendChild(h);
-        });
-        attachDrag(bar, task, ti, tj, chartCol);
-      }
-      attachJumpToEditor(bar, ti, tj);
-
-      row.appendChild(bar);
+      lane.forEach(({ task, index: tj }) => buildTaskBar(row, track, ti, task, tj, tl, chartCol));
       rows.appendChild(row);
     });
     chartCol.appendChild(rows);
@@ -437,10 +379,38 @@ function placeNarrowBarLabels() {
   document.querySelectorAll(".task-bar:not(.invalid)").forEach((bar) => {
     const label = bar.querySelector(".bar-label");
     if (!label) return;
+    bar.classList.remove("label-outside");
+
+    // 兩個把手共 18px，長條比這窄的話把手會蓋掉整根，點擊與跳轉都失效
+    bar.classList.toggle("no-handles", bar.clientWidth < 26);
+
     const badgesClipped = label.scrollWidth > label.clientWidth + 1;
     const tooNarrowToRead = bar.clientWidth < 56;
-    bar.classList.toggle("label-outside", badgesClipped || tooNarrowToRead);
+    if (!badgesClipped && !tooNarrowToRead) return;
+
+    // 同一列現在可能有多根長條。若右邊緊接著下一根，把標籤移到外面會疊在它上面，
+    // 那還不如維持裁切。
+    const room = spaceToNextBar(bar);
+    if (room !== null && room < label.scrollWidth + 8) return;
+
+    bar.classList.add("label-outside");
   });
+}
+
+// 同一列中，這根長條右緣到下一根長條左緣的距離；沒有下一根則回傳 null
+function spaceToNextBar(bar) {
+  const row = bar.parentElement;
+  if (!row) return null;
+  const r = bar.getBoundingClientRect();
+  let nearestLeft = null;
+  row.querySelectorAll(".task-bar").forEach((other) => {
+    if (other === bar) return;
+    const o = other.getBoundingClientRect();
+    if (o.left >= r.right - 1) {
+      nearestLeft = nearestLeft === null ? o.left : Math.min(nearestLeft, o.left);
+    }
+  });
+  return nearestLeft === null ? null : nearestLeft - r.right;
 }
 
 // 把連續的同類日子合併成一條帶子，避免 238 天各畫一格。
@@ -585,6 +555,72 @@ async function loadHolidays() {
   }
 }
 
+// 把一個任務的長條（含基準線幽靈條）建到指定的列上。
+// 因為現在一列可能有多根長條，所以抽成獨立函式。
+function buildTaskBar(row, track, ti, task, tj, tl, chartCol) {
+  const geo = taskGeometry(task, tl);
+
+  if (!geo) {
+    const bad = document.createElement("div");
+    bad.className = "task-bar invalid";
+    bad.dataset.color = track.color;
+    bad.style.left = "0%";
+    bad.title = taskTooltip(track, task);
+    bad.innerHTML = `<span class="bar-label"><span class="bar-title">⚠ ${escapeHtml(task.title || "未命名")}（缺少日期）</span></span>`;
+    attachJumpToEditor(bad, ti, tj);
+    row.appendChild(bad);
+    return;
+  }
+
+  if (showBaseline && task.baseline) {
+    const bgeo = taskGeometry(task.baseline, tl);
+    if (bgeo && (bgeo.left !== geo.left || bgeo.width !== geo.width)) {
+      const ghost = document.createElement("div");
+      ghost.className = "baseline-bar";
+      ghost.style.left = pct(bgeo.left);
+      ghost.style.width = pct(bgeo.width);
+      ghost.title = `基準線：${formatDate(parseISO(task.baseline.start))} ~ ${formatDate(parseISO(task.baseline.end))}`;
+      row.appendChild(ghost);
+    }
+  }
+
+  const bar = document.createElement("div");
+  bar.className = "task-bar";
+  bar.dataset.color = track.color;
+  bar.dataset.status = task.status;
+  bar.style.left = pct(geo.left);
+  // 扣 2px：同一列相鄰的兩個任務（前一項結束隔天就是下一項）才不會看起來連成一根
+  bar.style.width = `calc(${geo.width}% - 2px)`;
+  bar.title = taskTooltip(track, task);
+
+  const subs = task.subtasks || [];
+  const prog = Math.round(taskProgress(task) * 100);
+  const bd = baselineDelta(task);
+  bar.innerHTML = `
+    ${prog > 0 && prog < 100 ? `<span class="bar-fill" style="width:${prog}%"></span>` : ""}
+    <span class="bar-label">
+      ${task.owner ? `<span class="owner-chip" title="負責人：${escapeHtml(task.owner)}">${escapeHtml(task.owner)}</span>` : ""}
+      <span class="bar-title">${escapeHtml(task.title)}</span>
+      ${subs.length ? `<span class="subtask-progress">(${subs.filter((s) => s.done).length}/${subs.length})</span>` : ""}
+      ${(task.links || []).length ? `<span class="link-chip" title="有 ${task.links.length} 個連結">🔗</span>` : ""}
+      ${task.note ? `<span class="note-chip" title="${escapeHtml(task.note)}">📝</span>` : ""}
+      ${bd && showBaseline ? `<span class="delta-chip ${bd.direction}">${escapeHtml(bd.text)}</span>` : ""}
+    </span>`;
+
+  if (editMode) {
+    bar.classList.add("editable");
+    ["start", "end"].forEach((which) => {
+      const h = document.createElement("span");
+      h.className = `bar-handle ${which}`;
+      h.dataset.handle = which;
+      bar.appendChild(h);
+    });
+    attachDrag(bar, task, ti, tj, chartCol);
+  }
+  attachJumpToEditor(bar, ti, tj);
+  row.appendChild(bar);
+}
+
 function scrollToToday() {
   if (!timeline) return;
   const tp = todayPosition(timeline);
@@ -677,7 +713,7 @@ function attachDrag(bar, task, ti, tj, chartEl) {
       const left = (dayDiff(ns, tl.start) / tl.totalDays) * 100;
       const width = ((dayDiff(ne, ns) + 1) / tl.totalDays) * 100;
       bar.style.left = pct(left);
-      bar.style.width = pct(Math.max(width, 0.4));
+      bar.style.width = `calc(${Math.max(width, 0.4)}% - 2px)`;
       hint.textContent = `${formatDateShort(ns)} – ${formatDateShort(ne)}（${dayDiff(ne, ns) + 1} 天）`;
     };
 

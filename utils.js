@@ -418,6 +418,40 @@ function allTasks(data) {
   return (data.tracks || []).flatMap((t) => t.tasks || []);
 }
 
+/* ---------- 同軌道內的列數壓縮 ----------
+   日期不重疊的任務沒有必要各佔一列。依開始日排序後用 first-fit 放進最早
+   容得下的一列（區間分割問題的標準解，列數為最少）。
+   回傳的每個項目都保留 index，因為編輯面板與點擊跳轉要用原本的索引。 */
+
+function packIntoLanes(tasks) {
+  const dated = [];
+  const undated = [];
+  (tasks || []).forEach((task, index) => {
+    const s = parseISO(task.start);
+    const e = parseISO(task.end);
+    if (s && e) dated.push({ task, index, s, e });
+    else undated.push({ task, index, s: null, e: null });
+  });
+
+  dated.sort((a, b) => a.s - b.s || a.e - b.e);
+
+  const lanes = [];
+  dated.forEach((item) => {
+    // 前一項的結束日必須「早於」這一項的開始日；同一天算重疊，要另開一列
+    let lane = lanes.find((L) => L.lastEnd < item.s);
+    if (!lane) {
+      lane = { items: [], lastEnd: null };
+      lanes.push(lane);
+    }
+    lane.items.push(item);
+    lane.lastEnd = item.e;
+  });
+
+  const out = lanes.map((L) => L.items);
+  if (undated.length) out.push(undated); // 缺日期的另外一列，不參與壓縮
+  return out;
+}
+
 /* ---------- 驗證 ---------- */
 
 function validateProject(data) {
@@ -683,6 +717,7 @@ if (typeof module !== "undefined" && module.exports) {
     taskProgress,
     aggregateProgress,
     allTasks,
+    packIntoLanes,
     validateProject,
     migrateProject,
     deepClone,

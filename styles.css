@@ -387,12 +387,16 @@ header p.desc {
   min-height: var(--row-h);
 }
 
+/* 長條的寬度必須純粹由日期決定，所以這裡不能有左右 padding。
+   box-sizing 是 border-box，padding 0 8px 會讓盒子撐不下時以 padding 為最小寬度
+   （約 19px），短任務就會被畫得比實際工期寬，在同一列還會壓到下一根長條。
+   內距改由 .bar-label 負責。 */
 .task-bar {
   position: absolute;
   top: 4px;
   bottom: 4px;
   border-radius: 6px;
-  padding: 0 8px;
+  padding: 0;
   font-size: 0.72rem;
   font-weight: 600;
   color: #fff;
@@ -1083,6 +1087,8 @@ footer {
   min-width: 0;
   overflow: hidden;
   white-space: nowrap;
+  padding: 0 8px; /* 內距移到標籤上，長條盒子才不會被 padding 撐寬 */
+  height: 100%;
 }
 
 /* 標題是唯一可壓縮的部分，長條放不下時由它出現刪節號；
@@ -1187,7 +1193,12 @@ footer {
 
 /* 拖拉（D7） */
 
-.task-bar.editable { cursor: grab; padding-left: 12px; padding-right: 12px; }
+.task-bar.editable { cursor: grab; }
+.task-bar.editable .bar-label { padding: 0 12px; } /* 讓文字不要壓在拖拉把手上 */
+
+/* 太窄的長條放不下兩個把手，全被把手蓋住就點不到、也無法跳到編輯欄位 */
+.task-bar.no-handles .bar-handle { display: none; }
+.task-bar.no-handles .bar-label { padding: 0 4px; }
 .task-bar.editable.dragging { cursor: grabbing; opacity: 0.9; z-index: 5; }
 
 .bar-handle {
