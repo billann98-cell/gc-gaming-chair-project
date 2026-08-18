@@ -413,24 +413,37 @@ header p.desc {
   padding: 0 10px;
 }
 
-.task-bar[data-color="orange"] { background: var(--orange); }
-.task-bar[data-color="slate"] { background: var(--slate); }
-.task-bar[data-color="rust"] { background: var(--rust); }
-.task-bar[data-color="olive"] { background: var(--olive); }
+/* 每條軌道給兩個變數：--bar 是底色，--bar-ink 是在該底色上可讀的文字色。
+   這個色盤配白字的對比度不足（orange 2.39:1、slate 3.07:1、olive 3.63:1，
+   AA 需 4.5:1），長條改成實心後文字大量落在色塊上，所以淺色底一律用深色字，
+   只有夠深的 rust 才用白字。 */
+.task-bar[data-color="orange"] { --bar: var(--orange); --bar-ink: #1a1a1a; }
+.task-bar[data-color="slate"]  { --bar: var(--slate);  --bar-ink: #1a1a1a; }
+.task-bar[data-color="rust"]   { --bar: var(--rust);   --bar-ink: #ffffff; }
+.task-bar[data-color="olive"]  { --bar: var(--olive);  --bar-ink: #1a1a1a; }
 
-.task-bar[data-status="upcoming"] {
-  background: transparent;
-  border: 1.5px dashed currentColor;
+.task-bar {
+  background: var(--bar);
+  color: var(--bar-ink);
+  border: 1px solid transparent;
 }
-.task-bar[data-status="upcoming"][data-color="orange"] { color: var(--orange); }
-.task-bar[data-status="upcoming"][data-color="slate"] { color: var(--slate); }
-.task-bar[data-status="upcoming"][data-color="rust"] { color: var(--rust); }
-.task-bar[data-status="upcoming"][data-color="olive"] { color: var(--olive); }
+
+/* 三種狀態用「填色深淺 + 內框」區分，全部都是實心：
+   待辦＝淡色實心＋邊框、進行中＝飽和實心＋內環、已完成＝飽和實心＋降透明度 */
+.task-bar[data-status="upcoming"] {
+  background: color-mix(in srgb, var(--bar) 42%, var(--card-bg));
+  border-color: var(--bar);
+  color: var(--text);
+}
 
 .task-bar[data-status="in-progress"] {
-  opacity: 0.75;
-  outline: 2px solid currentColor;
-  outline-offset: 1px;
+  /* 用 inset box-shadow 而不是 outline：outline 會畫到盒子外面，
+     同一列相鄰長條只留 2px 間隙，會互相疊到 */
+  box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--bar-ink) 45%, transparent);
+}
+
+.task-bar[data-status="done"] {
+  opacity: 0.8;
 }
 
 .legend {
@@ -453,9 +466,16 @@ header p.desc {
   background: var(--muted);
 }
 
-.legend-swatch.upcoming { background: transparent; border: 1.5px dashed var(--muted); }
-.legend-swatch.in-progress { background: var(--muted); opacity: 0.75; outline: 2px solid var(--muted); outline-offset: 1px; }
-.legend-swatch.done { background: var(--muted); }
+/* 圖例要跟長條的新樣式一致，否則說明與實際看到的不符 */
+.legend-swatch.upcoming {
+  background: color-mix(in srgb, var(--muted) 42%, var(--card-bg));
+  border: 1px solid var(--muted);
+}
+.legend-swatch.in-progress {
+  background: var(--muted);
+  box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--card-bg) 55%, transparent);
+}
+.legend-swatch.done { background: var(--muted); opacity: 0.8; }
 
 footer {
   margin-top: 32px;
@@ -1066,17 +1086,18 @@ footer {
   outline-offset: 2px;
 }
 
+/* 進度覆蓋層改用文字色的半透明，淺色底與深色底都看得出來 */
 .bar-fill {
   position: absolute;
   left: 0;
   top: 0;
   bottom: 0;
-  background: rgba(255, 255, 255, 0.28);
+  background: color-mix(in srgb, var(--bar-ink) 22%, transparent);
   pointer-events: none;
 }
 
 .task-bar[data-status="upcoming"] .bar-fill {
-  background: color-mix(in srgb, currentColor 18%, transparent);
+  background: color-mix(in srgb, var(--bar) 55%, transparent);
 }
 
 .bar-label {
@@ -1129,7 +1150,7 @@ footer {
   font-weight: 700;
   padding: 0 5px;
   border-radius: 999px;
-  background: rgba(0, 0, 0, 0.18);
+  background: color-mix(in srgb, var(--bar-ink, #000) 18%, transparent);
   flex-shrink: 0;
 }
 
@@ -1147,7 +1168,7 @@ footer {
   font-weight: 700;
   padding: 0 5px;
   border-radius: 999px;
-  background: rgba(0, 0, 0, 0.22);
+  background: color-mix(in srgb, var(--bar-ink, #000) 22%, transparent);
   flex-shrink: 0;
 }
 
@@ -1207,11 +1228,11 @@ footer {
   bottom: 0;
   width: 9px;
   cursor: ew-resize;
-  background: rgba(255, 255, 255, 0.35);
+  background: color-mix(in srgb, var(--bar-ink) 28%, transparent);
 }
 
 .task-bar[data-status="upcoming"] .bar-handle {
-  background: color-mix(in srgb, currentColor 30%, transparent);
+  background: color-mix(in srgb, var(--bar) 60%, transparent);
 }
 
 .bar-handle.start { left: 0; border-radius: 6px 0 0 6px; }
