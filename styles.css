@@ -266,6 +266,98 @@ header p.desc {
   flex-wrap: wrap;
 }
 
+.cal-swatch {
+  width: 20px;
+  height: 13px;
+  border-radius: 3px;
+}
+
+/* 假日說明：把實際標記的日期列出來，光看色塊不知道標了什麼 */
+
+.holiday-notes { margin-top: 14px; }
+
+.holiday-notes details {
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 10px 14px;
+}
+
+.holiday-notes summary {
+  cursor: pointer;
+  font-size: 0.84rem;
+  font-weight: 700;
+  padding: 2px 0;
+}
+
+.cal-blocks {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 16px;
+  margin: 10px 0;
+}
+
+.cal-block h4 {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin: 0 0 6px;
+  padding-left: 8px;
+  border-left: 3px solid var(--border);
+  font-size: 0.82rem;
+}
+
+.cal-count {
+  font-weight: 400;
+  font-size: 0.72rem;
+  color: var(--muted);
+}
+
+.cal-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  font-size: 0.78rem;
+}
+
+.cal-list li {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding: 3px 0;
+  border-bottom: 1px dashed var(--border);
+}
+
+.cal-list li:last-child { border-bottom: none; }
+
+.cal-date {
+  min-width: 92px;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.cal-name { font-weight: 600; }
+
+.cal-extra {
+  flex: 1 1 100%;
+  font-size: 0.72rem;
+  color: var(--muted);
+}
+
+.verify-tag {
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: var(--soon);
+  background: var(--soon-wash);
+  border-radius: 999px;
+  padding: 1px 7px;
+  cursor: help;
+}
+
+.cal-list li.needs-verify .cal-name { color: var(--soon); }
+
 /* 工期徽章：日曆天 + 工作日 */
 .days-badge em {
   font-style: normal;

@@ -6,7 +6,7 @@ const SCHEMA_VERSION = 3;
 const TRACK_COLORS = ["orange", "slate", "rust", "olive"];
 const STATUSES = ["upcoming", "in-progress", "done"];
 const STATUS_LABEL = { upcoming: "待辦", "in-progress": "進行中", done: "已完成" };
-const SCALES = ["week", "month"];
+const SCALES = ["day", "week", "month"];
 const MIGRATION_PERIOD_DAYS = 14; // 舊資料沒有日期時，假設一期兩週
 
 /* ---------- 跳脫 ---------- */
@@ -223,12 +223,28 @@ function buildTimeline(data, scale) {
   // 完全沒有日期時，至少顯示今天前後各一個月，讓畫面不會空白
   const base = content || { min: addDays(today(), -14), max: addDays(today(), 30) };
 
-  const start = useScale === "week" ? mondayOf(base.min) : startOfMonth(base.min);
-  const end = useScale === "week" ? addDays(mondayOf(base.max), 6) : endOfMonth(base.max);
+  // 日與週都對齊到整週（週一起始），月則對齊到整月
+  const alignToWeek = useScale === "week" || useScale === "day";
+  const start = alignToWeek ? mondayOf(base.min) : startOfMonth(base.min);
+  const end = alignToWeek ? addDays(mondayOf(base.max), 6) : endOfMonth(base.max);
   const totalDays = dayDiff(end, start) + 1;
 
   const columns = [];
-  if (useScale === "week") {
+  if (useScale === "day") {
+    let cur = start;
+    while (cur <= end) {
+      columns.push({
+        start: cur,
+        end: cur,
+        days: 1,
+        label: String(cur.getDate()),
+        weekStart: isoDayNum(cur) === 0, // 週一，用來決定要不要畫分隔線
+        groupKey: `${cur.getFullYear()}-${cur.getMonth()}`,
+        groupLabel: `${cur.getFullYear()} 年 ${cur.getMonth() + 1} 月`,
+      });
+      cur = addDays(cur, 1);
+    }
+  } else if (useScale === "week") {
     let cur = start;
     while (cur <= end) {
       const colEnd = addDays(cur, 6);

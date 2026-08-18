@@ -239,7 +239,7 @@ function renderGantt() {
   $("range-label").textContent = `${formatDateShort(tl.start)} – ${formatDateShort(tl.end)}`;
 
   // 依欄位數量撐開寬度，讓每一欄都還讀得到標籤（長專案就靠橫向捲動）
-  const minCol = tl.scale === "week" ? 54 : 88;
+  const minCol = tl.scale === "day" ? 26 : tl.scale === "week" ? 54 : 88;
   document.querySelector(".gantt").style.minWidth = `${Math.max(900, 170 + tl.columns.length * minCol)}px`;
 
   // 表頭第一列：週刻度顯示月份、月刻度顯示年
@@ -303,8 +303,10 @@ function renderGantt() {
   // 欄位分隔線
   const gridLines = document.createElement("div");
   gridLines.className = "col-lines";
+  // 日刻度下每天都畫線會變成一片格子，只在每週一畫
   gridLines.innerHTML = tl.columns
     .slice(1)
+    .filter((c) => (tl.scale === "day" ? c.weekStart : true))
     .map((c) => `<div class="col-line" style="left:${pct((dayDiff(c.start, tl.start) / tl.totalDays) * 100)}"></div>`)
     .join("");
   chartCol.appendChild(gridLines);
@@ -495,17 +497,78 @@ function buildDayBands(tl) {
   return out.join("");
 }
 
+function calSwatch(color) {
+  // 和甘特圖上的假日帶同樣構成：淡色底 + 頂端色條，這樣顏色才對得起來
+  return `<span class="legend-swatch cal-swatch" style="background:${color}33;box-shadow:inset 0 3px 0 ${color}"></span>`;
+}
+
 function renderHolidayLegend() {
   const slot = $("cal-legend");
   if (!slot) return;
   slot.innerHTML = calendars
-    .map(
-      (c) =>
-        `<div class="legend-item"><span class="legend-swatch" style="background:${c.color}33;box-shadow:inset 0 2px 0 ${c.color}"></span>${escapeHtml(
-          c.label
-        )}</div>`
-    )
+    .map((c) => `<div class="legend-item">${calSwatch(c.color)}${escapeHtml(c.label)}</div>`)
     .join("");
+}
+
+// 光給色塊看不出「到底標了哪幾天」，所以把每本日曆實際標記的日期全部列出來，
+// 並把需要向官方核對的項目標明，避免被當成已確認的資料使用。
+function renderHolidayNotes() {
+  const slot = $("holiday-notes");
+  if (!slot) return;
+  if (!calendars.length) {
+    slot.innerHTML = "";
+    return;
+  }
+
+  const fmtRange = (r) => {
+    const s = parseISO(r.start), e = parseISO(r.end || r.start);
+    if (!s) return escapeHtml(r.start || "");
+    const one = !e || toISO(s) === toISO(e);
+    return one
+      ? `${formatDateShort(s)}${weekdayLabel(s)}`
+      : `${formatDateShort(s)} – ${formatDateShort(e)}（${dayDiff(e, s) + 1} 天）`;
+  };
+
+  const totalVerify = calendars.reduce(
+    (n, c) => n + (c.ranges || []).filter((r) => r.verify).length,
+    0
+  );
+
+  const blocks = calendars
+    .map((c) => {
+      const ix = calIndex[c.id];
+      const items = (c.ranges || [])
+        .slice()
+        .sort((a, b) => (a.start < b.start ? -1 : 1))
+        .map(
+          (r) => `
+        <li${r.verify ? ' class="needs-verify"' : ""}>
+          <span class="cal-date">${fmtRange(r)}</span>
+          <span class="cal-name">${escapeHtml(r.label)}</span>
+          ${r.verify ? `<span class="verify-tag" title="${escapeHtml(r.verify)}">待核對</span>` : ""}
+          ${r.note ? `<span class="cal-extra">${escapeHtml(r.note)}</span>` : ""}
+        </li>`
+        )
+        .join("");
+      return `
+      <div class="cal-block">
+        <h4 style="border-left-color:${c.color}">
+          ${calSwatch(c.color)}${escapeHtml(c.label)}
+          <span class="cal-count">${(c.ranges || []).length} 項 ・ 共 ${ix ? ix.holidays.size : 0} 個非工作日</span>
+        </h4>
+        <ul class="cal-list">${items}</ul>
+      </div>`;
+    })
+    .join("");
+
+  slot.innerHTML = `
+    <details open>
+      <summary>假日標示說明${totalVerify ? `　<span class="verify-tag">${totalVerify} 項待核對</span>` : ""}</summary>
+      <p class="hint">甘特圖上的直向色帶就是下列日期。灰色是週末（系統自動計算），各地假日各有顏色；同一天兩邊都放假時，兩條色條會分上下顯示。</p>
+      <div class="cal-blocks">${blocks}</div>
+      <p class="hint">標「待核對」的是我無法確定的項目 —— 台灣補假由行政院人事行政總處公告、大陸放假與調休由國務院辦公廳公告，通常前一年底才定案。核對後請編輯
+        <code>calendars/holidays.json</code> 把該筆的 <code>verify</code> 欄刪掉，所有天數會自動重算。</p>
+    </details>`;
 }
 
 async function loadHolidays() {
@@ -1889,6 +1952,7 @@ async function init() {
   scale = loadScale();
   await loadHolidays(); // 要在第一次渲染前載入，底色帶與工作日才算得出來
   renderHolidayLegend();
+  renderHolidayNotes();
   data = migrateProject(raw);
   migrationInfo = data._migration || null;
   showBaseline = hasBaseline();
