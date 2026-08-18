@@ -1219,7 +1219,10 @@ footer {
 
 /* 太窄的長條放不下兩個把手，全被把手蓋住就點不到、也無法跳到編輯欄位 */
 .task-bar.no-handles .bar-handle { display: none; }
-.task-bar.no-handles .bar-label { padding: 0 4px; }
+.task-bar.no-handles .bar-label { padding: 0 3px; }
+
+/* 極窄長條放不下任何文字，標籤直接不顯示（詳細內容看懸浮卡） */
+.task-bar.label-hidden .bar-label { display: none; }
 .task-bar.editable.dragging { cursor: grabbing; opacity: 0.9; z-index: 5; }
 
 .bar-handle {
@@ -1786,6 +1789,115 @@ footer {
     --dt-label-w: 68px;
     --dt-day-min: 130px;
   }
+}
+
+/* ============================================================
+   任務詳細內容的懸浮卡
+   ============================================================ */
+
+.bar-hover {
+  position: fixed;
+  z-index: 60;
+  max-width: 340px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--card-bg);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.22);
+  font-size: 0.78rem;
+  line-height: 1.5;
+  pointer-events: none; /* 不攔滑鼠，否則移到卡片上長條就 mouseleave 了 */
+}
+
+.bar-hover[hidden] { display: none; }
+
+.bh-head {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  flex-wrap: wrap;
+  padding-bottom: 6px;
+  margin-bottom: 6px;
+  border-bottom: 1px solid var(--border);
+}
+
+.bh-track {
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: var(--bg);
+}
+
+.bh-track[data-color="orange"] { color: var(--orange); }
+.bh-track[data-color="slate"] { color: var(--slate); }
+.bh-track[data-color="rust"] { color: var(--rust); }
+.bh-track[data-color="olive"] { color: var(--olive); }
+
+.bh-title {
+  font-size: 0.84rem;
+  overflow-wrap: anywhere;
+}
+
+.bh-body { margin: 0; }
+
+.bh-row {
+  display: grid;
+  grid-template-columns: 92px 1fr;
+  gap: 4px 8px;
+  padding: 2px 0;
+}
+
+.bh-row dt {
+  color: var(--muted);
+  font-size: 0.74rem;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.bh-row dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.bh-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+
+.bh-sub {
+  display: block;
+  font-size: 0.72rem;
+  color: var(--muted);
+}
+
+.bh-subs {
+  list-style: none;
+  margin: 2px 0 0;
+  padding: 0;
+  font-size: 0.75rem;
+}
+
+.bh-subs li.done { color: var(--muted); text-decoration: line-through; }
+
+.bh-note {
+  display: block;
+  white-space: pre-wrap;
+}
+
+.bh-delta.behind { color: var(--danger); font-weight: 700; }
+.bh-delta.ahead { color: var(--ok); font-weight: 700; }
+.bh-delta.shift { color: var(--muted); }
+
+.bh-foot {
+  margin-top: 8px;
+  padding-top: 6px;
+  border-top: 1px solid var(--border);
+  font-size: 0.7rem;
+  color: var(--muted);
 }
 
 /* Excel 範本上傳 */

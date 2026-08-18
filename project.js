@@ -195,36 +195,129 @@ function baselineDelta(task) {
   };
 }
 
-function taskTooltip(track, task) {
+/* ---------- 任務詳細內容的懸浮卡 ----------
+   原本用原生 title 屬性：延遲約一秒、純文字、無法排版，長備註幾乎讀不了。
+   改成自訂卡片，長條上就只留任務全名。 */
+
+function taskDetailHtml(track, task) {
   const s = parseISO(task.start), e = parseISO(task.end);
-  const lines = [`${track.label} / ${task.title}`];
+  const row = (k, v) => `<div class="bh-row"><dt>${k}</dt><dd>${v}</dd></div>`;
+  const parts = [];
+
+  parts.push(`<div class="bh-head">
+    <span class="bh-track" data-color="${track.color}">${escapeHtml(track.label)}</span>
+    <strong class="bh-title">${escapeHtml(task.title || "未命名")}</strong>
+  </div>`);
+
   if (s && e) {
-    lines.push(`${formatDate(s)} ~ ${formatDate(e)}`);
-    lines.push(`日曆天 ${taskDays(task)} 天`);
-    // 兩邊的可工作天數不同，分開列才有意義：設計端看台灣、工廠端看大陸
+    parts.push(
+      row("起訖", `${formatDate(s)}${weekdayLabel(s)} ～ ${formatDate(e)}${weekdayLabel(e)}`)
+    );
+    parts.push(row("日曆天", `${taskDays(task)} 天`));
+    // 台灣與大陸的可工作天數不同，分開列才有意義
     calendars.forEach((cal) => {
       const ix = calIndex[cal.id];
       const wd = workingDays(task.start, task.end, ix);
       const bd = nonWorkingBreakdown(task.start, task.end, ix);
-      lines.push(
-        `${cal.label.replace("國定假日", "")}可工作 ${wd} 天` +
-          (bd.holiday ? `（扣假日 ${bd.holiday} 天：${bd.labels.join("、")}）` : "")
+      const extra = bd.holiday
+        ? `<span class="bh-sub">扣 ${bd.holiday} 天：${escapeHtml(bd.labels.join("、"))}</span>`
+        : "";
+      parts.push(
+        row(
+          `<span class="bh-dot" style="background:${cal.color}"></span>${escapeHtml(cal.label.replace("國定假日", ""))}可工作`,
+          `${wd} 天${extra}`
+        )
       );
     });
   } else {
-    lines.push("⚠ 缺少日期");
+    parts.push(row("日期", `<span class="bad">⚠ 缺少日期</span>`));
   }
-  lines.push(`狀態：${STATUS_LABEL[task.status]}`);
-  if (task.owner) lines.push(`負責人：${task.owner}`);
+
+  parts.push(row("狀態", escapeHtml(STATUS_LABEL[task.status])));
+  if (task.owner) parts.push(row("負責人", escapeHtml(task.owner)));
+
   const subs = task.subtasks || [];
-  if (subs.length) lines.push(`細項：${subs.filter((x) => x.done).length}/${subs.length}`);
+  if (subs.length) {
+    const list = subs
+      .map((x) => `<li class="${x.done ? "done" : ""}">${x.done ? "☑" : "☐"} ${escapeHtml(x.title)}</li>`)
+      .join("");
+    parts.push(row(`細項 ${subs.filter((x) => x.done).length}/${subs.length}`, `<ul class="bh-subs">${list}</ul>`));
+  }
+
   const bd = baselineDelta(task);
-  if (bd) lines.push(`對比基準線：${bd.text}`);
-  if (task.note) lines.push(`備註：${task.note}`);
-  if ((task.links || []).length) lines.push(`連結：${task.links.length} 個`);
-  lines.push("— 點一下可直接跳到這個任務的編輯欄位");
-  return lines.join("\n");
+  if (bd) parts.push(row("對比基準線", `<span class="bh-delta ${bd.direction}">${escapeHtml(bd.text)}</span>`));
+
+  if (task.note) parts.push(row("備註", `<span class="bh-note">${escapeHtml(task.note)}</span>`));
+
+  const links = task.links || [];
+  if (links.length) {
+    parts.push(row("連結", links.map((l) => escapeHtml(l.label || l.url)).join("、")));
+  }
+
+  parts.push(`<div class="bh-foot">點一下長條可跳到這個任務的編輯欄位</div>`);
+  return `<dl class="bh-body">${parts.join("")}</dl>`;
 }
+
+let hoverBar = null;
+
+function showHoverCard(bar, track, task) {
+  const card = $("bar-hover");
+  if (!card) return;
+  hoverBar = bar;
+  card.innerHTML = taskDetailHtml(track, task);
+  card.hidden = false;
+  positionHoverCard(bar);
+}
+
+function hideHoverCard() {
+  const card = $("bar-hover");
+  if (!card) return;
+  card.hidden = true;
+  hoverBar = null;
+}
+
+// 貼著長條下緣顯示；碰到視窗邊緣就翻到上方或往內收
+function positionHoverCard(bar) {
+  const card = $("bar-hover");
+  const r = bar.getBoundingClientRect();
+  const cw = card.offsetWidth;
+  const ch = card.offsetHeight;
+  const pad = 8;
+
+  let left = r.left;
+  if (left + cw > window.innerWidth - pad) left = window.innerWidth - cw - pad;
+  if (left < pad) left = pad;
+
+  let top = r.bottom + pad;
+  if (top + ch > window.innerHeight - pad) top = r.top - ch - pad;
+  if (top < pad) top = pad;
+
+  card.style.left = `${Math.round(left)}px`;
+  card.style.top = `${Math.round(top)}px`;
+}
+
+function attachHoverCard(bar, track, task) {
+  bar.addEventListener("mouseenter", () => showHoverCard(bar, track, task));
+  bar.addEventListener("mouseleave", hideHoverCard);
+  // 鍵盤操作也要看得到（長條本身是 tabindex=0 的按鈕）
+  bar.addEventListener("focus", () => showHoverCard(bar, track, task));
+  bar.addEventListener("blur", hideHoverCard);
+}
+
+// 卡片是 fixed 定位，長條會隨捲動移動，所以要跟著重新定位。
+// 不能改成「捲動就收起」：用鍵盤 focus 到長條時瀏覽器會自動把它捲進畫面，
+// 那個捲動事件會立刻把剛剛顯示的卡片關掉。
+["scroll", "resize"].forEach((ev) =>
+  window.addEventListener(
+    ev,
+    () => {
+      if (!hoverBar) return;
+      if (!hoverBar.isConnected) return hideHoverCard();
+      positionHoverCard(hoverBar);
+    },
+    { passive: true, capture: true }
+  )
+);
 
 /* ---------- 甘特圖（日期軸） ---------- */
 
@@ -233,6 +326,8 @@ function pct(n) {
 }
 
 function renderGantt() {
+  // 重繪會把長條整批換掉，正在顯示的懸浮卡會指向已移除的元素
+  hideHoverCard();
   timeline = buildTimeline(data, scale);
   const tl = timeline;
 
@@ -383,17 +478,23 @@ function placeNarrowBarLabels() {
 
     // 兩個把手共 18px，長條比這窄的話把手會蓋掉整根，點擊與跳轉都失效
     bar.classList.toggle("no-handles", bar.clientWidth < 26);
+    bar.classList.remove("label-hidden");
 
-    const badgesClipped = label.scrollWidth > label.clientWidth + 1;
+    const clipped = label.scrollWidth > label.clientWidth + 1;
     const tooNarrowToRead = bar.clientWidth < 56;
-    if (!badgesClipped && !tooNarrowToRead) return;
+    if (!clipped && !tooNarrowToRead) return;
 
     // 同一列現在可能有多根長條。若右邊緊接著下一根，把標籤移到外面會疊在它上面，
     // 那還不如維持裁切。
     const room = spaceToNextBar(bar);
-    if (room !== null && room < label.scrollWidth + 8) return;
+    if (room === null || room >= label.scrollWidth + 8) {
+      bar.classList.add("label-outside");
+      return;
+    }
 
-    bar.classList.add("label-outside");
+    // 極窄的長條連一個字都放不下（標籤自身的內距就比長條寬），
+    // 硬留著只會擠出邊界又什麼都看不到，直接不顯示，資訊交給懸浮卡。
+    if (bar.clientWidth < 16) bar.classList.add("label-hidden");
   });
 }
 
@@ -565,8 +666,8 @@ function buildTaskBar(row, track, ti, task, tj, tl, chartCol) {
     bad.className = "task-bar invalid";
     bad.dataset.color = track.color;
     bad.style.left = "0%";
-    bad.title = taskTooltip(track, task);
     bad.innerHTML = `<span class="bar-label"><span class="bar-title">⚠ ${escapeHtml(task.title || "未命名")}（缺少日期）</span></span>`;
+    attachHoverCard(bad, track, task);
     attachJumpToEditor(bad, ti, tj);
     row.appendChild(bad);
     return;
@@ -591,21 +692,13 @@ function buildTaskBar(row, track, ti, task, tj, tl, chartCol) {
   bar.style.left = pct(geo.left);
   // 扣 2px：同一列相鄰的兩個任務（前一項結束隔天就是下一項）才不會看起來連成一根
   bar.style.width = `calc(${geo.width}% - 2px)`;
-  bar.title = taskTooltip(track, task);
 
-  const subs = task.subtasks || [];
+  // 長條上只寫任務全名，其餘資訊一律進懸浮卡
   const prog = Math.round(taskProgress(task) * 100);
-  const bd = baselineDelta(task);
   bar.innerHTML = `
     ${prog > 0 && prog < 100 ? `<span class="bar-fill" style="width:${prog}%"></span>` : ""}
-    <span class="bar-label">
-      ${task.owner ? `<span class="owner-chip" title="負責人：${escapeHtml(task.owner)}">${escapeHtml(task.owner)}</span>` : ""}
-      <span class="bar-title">${escapeHtml(task.title)}</span>
-      ${subs.length ? `<span class="subtask-progress">(${subs.filter((s) => s.done).length}/${subs.length})</span>` : ""}
-      ${(task.links || []).length ? `<span class="link-chip" title="有 ${task.links.length} 個連結">🔗</span>` : ""}
-      ${task.note ? `<span class="note-chip" title="${escapeHtml(task.note)}">📝</span>` : ""}
-      ${bd && showBaseline ? `<span class="delta-chip ${bd.direction}">${escapeHtml(bd.text)}</span>` : ""}
-    </span>`;
+    <span class="bar-label"><span class="bar-title">${escapeHtml(task.title)}</span></span>`;
+  attachHoverCard(bar, track, task);
 
   if (editMode) {
     bar.classList.add("editable");
