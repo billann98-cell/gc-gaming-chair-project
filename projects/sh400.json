@@ -195,6 +195,236 @@
           "subtasks": []
         }
       ]
+    },
+    {
+      "key": "packaging",
+      "label": "包裝",
+      "color": "slate",
+      "tasks": [
+        {
+          "title": "包裝結構樣",
+          "start": "2026-10-22",
+          "end": "2026-11-04",
+          "status": "upcoming",
+          "owner": "",
+          "note": "對映範例 P3（Tooling 開始）",
+          "links": [],
+          "baseline": null,
+          "subtasks": []
+        },
+        {
+          "title": "製作 label",
+          "start": "2026-10-22",
+          "end": "2026-11-04",
+          "status": "upcoming",
+          "owner": "",
+          "note": "對映範例 P3",
+          "links": [],
+          "baseline": null,
+          "subtasks": []
+        },
+        {
+          "title": "製作 QSG",
+          "start": "2026-10-22",
+          "end": "2026-11-04",
+          "status": "upcoming",
+          "owner": "",
+          "note": "對映範例 P3",
+          "links": [],
+          "baseline": null,
+          "subtasks": []
+        },
+        {
+          "title": "Label 試刷",
+          "start": "2027-01-01",
+          "end": "2027-01-14",
+          "status": "upcoming",
+          "owner": "",
+          "note": "對映範例 P6（T2 階段）",
+          "links": [],
+          "baseline": null,
+          "subtasks": []
+        },
+        {
+          "title": "QSG, 彩盒, label, 包材簽樣",
+          "start": "2027-02-01",
+          "end": "2027-02-14",
+          "status": "upcoming",
+          "owner": "",
+          "note": "對映範例 P7（NPI↔PVT）。⚠ 整段落在供應商春節停工 2/4-2/14，工廠端僅 3 個工作日，建議提前至 1 月",
+          "links": [],
+          "baseline": null,
+          "subtasks": []
+        }
+      ]
+    },
+    {
+      "key": "certification",
+      "label": "認證",
+      "color": "rust",
+      "tasks": [
+        {
+          "title": "認證開案",
+          "start": "2026-10-22",
+          "end": "2026-11-04",
+          "status": "upcoming",
+          "owner": "",
+          "note": "對映範例 P3。認證是整份排程原本完全缺漏的一條，這是回推出來的建議位置",
+          "links": [],
+          "baseline": null,
+          "subtasks": []
+        },
+        {
+          "title": "文件審查",
+          "start": "2026-11-11",
+          "end": "2026-11-24",
+          "status": "upcoming",
+          "owner": "",
+          "note": "對映範例 P4",
+          "links": [],
+          "baseline": null,
+          "subtasks": []
+        },
+        {
+          "title": "送樣",
+          "start": "2026-11-30",
+          "end": "2026-12-13",
+          "status": "upcoming",
+          "owner": "",
+          "note": "對映範例 P5（T0/T1）。以 T0 件送樣；若實驗室要求 T1 等級樣品，須等 T1 生產完成（1/5）之後",
+          "links": [],
+          "baseline": null,
+          "subtasks": []
+        },
+        {
+          "title": "認證測試 (4-6wks)",
+          "start": "2026-11-30",
+          "end": "2026-12-27",
+          "status": "upcoming",
+          "owner": "",
+          "note": "對映範例 P5–P6 共 4 週。名稱為 4-6 週，若實際採 6 週需再往後 2 週",
+          "links": [],
+          "baseline": null,
+          "subtasks": []
+        },
+        {
+          "title": "投件 (2wks)",
+          "start": "2027-02-01",
+          "end": "2027-02-14",
+          "status": "upcoming",
+          "owner": "",
+          "note": "對映範例 P7。⚠ 整段落在春節停工；且與認證測試結束（12/27）之間空了 5 週，建議提前投件以消除這兩個問題",
+          "links": [],
+          "baseline": null,
+          "subtasks": []
+        },
+        {
+          "title": "取證",
+          "start": "2027-03-22",
+          "end": "2027-04-02",
+          "status": "upcoming",
+          "owner": "",
+          "note": "對映範例 P8，結束於出貨前一天。⚠ 範例原為 14 天，SH400 從 MP 生產到出貨只有 12 天，已壓縮 2 天",
+          "links": [],
+          "baseline": null,
+          "subtasks": []
+        }
+      ]
+    },
+    {
+      "key": "marketing",
+      "label": "行銷素材",
+      "color": "olive",
+      "tasks": [
+        {
+          "title": "MKT Kick off",
+          "start": "2026-10-22",
+          "end": "2026-11-04",
+          "status": "upcoming",
+          "owner": "",
+          "note": "對映範例 P3",
+          "links": [],
+          "baseline": null,
+          "subtasks": []
+        },
+        {
+          "title": "Naming",
+          "start": "2026-10-22",
+          "end": "2026-11-04",
+          "status": "upcoming",
+          "owner": "",
+          "note": "對映範例 P3",
+          "links": [],
+          "baseline": null,
+          "subtasks": []
+        },
+        {
+          "title": "網頁 layout",
+          "start": "2026-11-11",
+          "end": "2026-11-24",
+          "status": "upcoming",
+          "owner": "",
+          "note": "對映範例 P4",
+          "links": [],
+          "baseline": null,
+          "subtasks": []
+        },
+        {
+          "title": "Wording",
+          "start": "2026-11-11",
+          "end": "2027-01-19",
+          "status": "upcoming",
+          "owner": "",
+          "note": "對映範例 P4–P8 共 70 天。範例中此項持續到 MP，若要比照可把結束日延到 3/21",
+          "links": [],
+          "baseline": null,
+          "subtasks": []
+        },
+        {
+          "title": "Photo Brief",
+          "start": "2026-11-30",
+          "end": "2026-12-13",
+          "status": "upcoming",
+          "owner": "",
+          "note": "對映範例 P5",
+          "links": [],
+          "baseline": null,
+          "subtasks": []
+        },
+        {
+          "title": "拍攝",
+          "start": "2027-01-01",
+          "end": "2027-01-14",
+          "status": "upcoming",
+          "owner": "",
+          "note": "對映範例 P6。需要 T1 樣品外觀已定案",
+          "links": [],
+          "baseline": null,
+          "subtasks": []
+        },
+        {
+          "title": "修圖",
+          "start": "2027-01-01",
+          "end": "2027-01-28",
+          "status": "upcoming",
+          "owner": "",
+          "note": "對映範例 P6–P7 共 4 週",
+          "links": [],
+          "baseline": null,
+          "subtasks": []
+        },
+        {
+          "title": "Sales Kit 產品照/網頁",
+          "start": "2027-03-22",
+          "end": "2027-04-02",
+          "status": "upcoming",
+          "owner": "",
+          "note": "對映範例 P8，結束於出貨前一天。⚠ 範例原為 14 天，此處只有 12 天，已壓縮",
+          "links": [],
+          "baseline": null,
+          "subtasks": []
+        }
+      ]
     }
   ]
 }
