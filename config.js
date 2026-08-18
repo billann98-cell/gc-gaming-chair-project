@@ -58,15 +58,35 @@ function ghHeaders(extra) {
   return headers;
 }
 
+// 讀取失敗時是否因為 token 被拒（401）。UI 靠這個提醒使用者 token 已失效，
+// 但畫面仍以匿名方式正常運作。
+let lastReadTokenRejected = false;
+
+function wasTokenRejected() {
+  return lastReadTokenRejected;
+}
+
+// 公開 repo 的讀取本來不需要任何 token。但只要 localStorage 有 token 我們就會附上，
+// 一旦它過期，GitHub 會回 401，讓本來可行的匿名讀取整個失敗 —— 使用者會看到
+// 「無法取得最新版本」而以為是網站壞了。所以 401 時退回匿名再讀一次。
+async function ghFetchRead(url) {
+  let res = await fetch(url, { headers: ghHeaders(), cache: "no-cache" });
+  if (res.status === 401 && getToken()) {
+    lastReadTokenRejected = true;
+    res = await fetch(url, {
+      headers: { Accept: "application/vnd.github+json" },
+      cache: "no-cache",
+    });
+  }
+  return res;
+}
+
 // 從 GitHub API 讀檔，同時取回 sha。
 // 這條路徑讀到的一定是 main 上的最新內容，不像 GitHub Pages 的靜態檔會有 CDN 快取延遲。
 async function ghGetFile(path) {
   // 用 cache: "no-cache" 而不是在網址後面加時間戳。GitHub API 回應帶有 max-age=60，
   // 若讓瀏覽器快取就可能拿到一分鐘前的舊版本，衝突保護就失效了。
-  const res = await fetch(`${GH_API}/repos/${REPO_OWNER}/${REPO_NAME}/contents/${path}?ref=${BRANCH}`, {
-    headers: ghHeaders(),
-    cache: "no-cache",
-  });
+  const res = await ghFetchRead(`${GH_API}/repos/${REPO_OWNER}/${REPO_NAME}/contents/${path}?ref=${BRANCH}`);
   if (res.status === 404) return { json: null, sha: null, missing: true };
   if (!res.ok) throw new Error(`讀取 ${path} 失敗 (${res.status})`);
   const data = await res.json();
@@ -166,7 +186,7 @@ async function ghLatestCommit(path, force) {
   const url = `${GH_API}/repos/${REPO_OWNER}/${REPO_NAME}/commits?path=${encodeURIComponent(
     path
   )}&sha=${BRANCH}&per_page=1`;
-  const res = await fetch(url, { headers: ghHeaders(), cache: "no-cache" });
+  const res = await ghFetchRead(url);
   if (!res.ok) return null;
   const list = await res.json();
   if (!Array.isArray(list) || !list.length) return null;
@@ -332,6 +352,19 @@ function ghTokenFixHtml(diag) {
       : fixSteps;
 
   return `<strong>${diag.message}</strong>${body}`;
+}
+
+// 請使用者重新輸入 token 並立刻驗證。回傳診斷結果供 UI 顯示。
+async function ghPromptAndVerifyToken() {
+  const next = window.prompt(
+    "貼上 GitHub Personal Access Token（留空並確定可清除已儲存的 token）：",
+    getToken()
+  );
+  if (next === null) return null;
+  setToken(next.trim());
+  lastReadTokenRejected = false;
+  if (!next.trim()) return { ok: false, code: "no-token", message: "已清除 token。" };
+  return ghDiagnoseToken();
 }
 
 function ghFileHistoryUrl(path) {

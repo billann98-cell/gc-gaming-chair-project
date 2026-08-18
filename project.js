@@ -1767,11 +1767,29 @@ async function enterEdit() {
     setBanner(
       "sha",
       "warn",
-      `無法向 GitHub 取得最新版本（${escapeHtml(e.message)}）。仍可編輯，但這次<strong>無法安全儲存</strong>，請重新載入後再試。`,
-      [{ label: "知道了", run: () => dropBanner("sha") }]
+      `無法向 GitHub 取得最新版本（${escapeHtml(e.message)}）。仍可編輯，但這次<strong>無法安全儲存</strong>。`,
+      [
+        { label: "重新載入", run: () => window.location.reload() },
+        { label: "知道了", run: () => dropBanner("sha") },
+      ]
     );
   } finally {
     btn.disabled = false;
+  }
+
+  // 讀取成功但 token 被拒（已退回匿名讀取）：現在就講清楚，
+  // 不要等使用者排完一整週的調整、按下儲存才發現存不進去。
+  if (wasTokenRejected()) {
+    setBanner(
+      "token-expired",
+      "warn",
+      `你儲存的 GitHub Token <strong>已失效或過期</strong>（GitHub 回 401）。
+       目前是用匿名方式讀取，所以檢視和編輯都正常，但<strong>儲存前必須重新輸入 token</strong>。`,
+      [
+        { label: "重新輸入 Token", run: fixToken },
+        { label: "稍後再說", run: () => dropBanner("token-expired") },
+      ]
+    );
   }
 
   snapshot = deepClone(data);
@@ -1783,6 +1801,15 @@ async function enterEdit() {
   refreshView();
   renderEditPanel();
   showMigrationBanner();
+}
+
+// 專案頁原本沒有 token 入口（只在首頁），token 過期時使用者無處可改
+async function fixToken() {
+  const diag = await ghPromptAndVerifyToken();
+  if (!diag) return; // 使用者按取消
+  setBanner("token-expired", diag.ok ? "info" : "error", ghTokenFixHtml(diag), [
+    { label: "知道了", run: () => dropBanner("token-expired") },
+  ]);
 }
 
 function cancelEdit() {
@@ -1843,6 +1870,11 @@ $("save-btn").addEventListener("click", async () => {
     } else if (e.isConflict) {
       setBanner("conflict", "error", escapeHtml(e.message), [
         { label: "重新載入最新版本", run: () => window.location.reload() },
+      ]);
+    } else if (/401|無效|過期/.test(e.message)) {
+      // ghPutFile 遇到 401 會清掉 token，這裡直接給重新輸入的入口
+      setBanner("token-expired", "error", `${escapeHtml(e.message)}　你的變更還在畫面上，重新輸入 token 後再按儲存即可。`, [
+        { label: "重新輸入 Token", run: fixToken },
       ]);
     } else {
       alert(`儲存失敗：${e.message}`);
