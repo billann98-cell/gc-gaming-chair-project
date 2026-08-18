@@ -307,18 +307,36 @@ function isWeekend(d) {
   return w === 0 || w === 6;
 }
 
-// 把假日區間展開成一組 ISO 日期，方便逐日查詢
+// 把假日區間展開成逐日查詢用的索引。
+// workdays 是大陸「調休」把週末改成上班日的情況，要能反過來加回工作日。
 function buildNonWorkingIndex(ranges) {
-  const map = new Map(); // ISO -> label
+  const holidays = new Map(); // ISO -> label
+  const workdays = new Map();
   (ranges || []).forEach((r) => {
     const s = parseISO(r.start);
     const e = parseISO(r.end || r.start);
     if (!s || !e) return;
+    const target = r.kind === "workday" ? workdays : holidays;
     for (let d = s; d <= e; d = addDays(d, 1)) {
-      if (!map.has(toISO(d))) map.set(toISO(d), r.label || "假日");
+      const iso = toISO(d);
+      if (!target.has(iso)) target.set(iso, r.label || (r.kind === "workday" ? "調休上班" : "假日"));
     }
   });
-  return map;
+  return { holidays, workdays };
+}
+
+// 合併多本日曆，用於「任一邊放假就算非工作日」的保守估算
+function mergeNonWorkingIndexes(indexes) {
+  const holidays = new Map();
+  const workdays = new Map();
+  (indexes || []).forEach((ix) => {
+    if (!ix) return;
+    ix.holidays.forEach((label, iso) => {
+      holidays.set(iso, holidays.has(iso) ? `${holidays.get(iso)}／${label}` : label);
+    });
+    ix.workdays.forEach((label, iso) => workdays.set(iso, label));
+  });
+  return { holidays, workdays };
 }
 
 // 含頭含尾的日曆天
@@ -328,32 +346,32 @@ function calendarDays(startISO, endISO) {
   return dayDiff(e, s) + 1;
 }
 
-// 扣掉週末與假日之後真正能工作的天數
-function workingDays(startISO, endISO, nonWorking) {
+// 扣掉週末與假日之後真正能工作的天數。ix 是 buildNonWorkingIndex 的結果。
+function workingDays(startISO, endISO, ix) {
   const s = parseISO(startISO), e = parseISO(endISO);
   if (!s || !e) return 0;
   let n = 0;
   for (let d = s; d <= e; d = addDays(d, 1)) {
-    if (isWeekend(d)) continue;
-    if (nonWorking && nonWorking.has(toISO(d))) continue;
+    const iso = toISO(d);
+    if (ix && ix.holidays.has(iso)) continue;
+    if (isWeekend(d) && !(ix && ix.workdays.has(iso))) continue;
     n++;
   }
   return n;
 }
 
 // 一段期間內落入的非工作日明細，用於說明「為什麼只剩這麼幾天」
-function nonWorkingBreakdown(startISO, endISO, nonWorking) {
+function nonWorkingBreakdown(startISO, endISO, ix) {
   const s = parseISO(startISO), e = parseISO(endISO);
   if (!s || !e) return { weekend: 0, holiday: 0, labels: [] };
   let weekend = 0, holiday = 0;
   const labels = new Set();
   for (let d = s; d <= e; d = addDays(d, 1)) {
     const iso = toISO(d);
-    const isHol = nonWorking && nonWorking.has(iso);
-    if (isHol) {
+    if (ix && ix.holidays.has(iso)) {
       holiday++;
-      labels.add(nonWorking.get(iso));
-    } else if (isWeekend(d)) {
+      labels.add(ix.holidays.get(iso));
+    } else if (isWeekend(d) && !(ix && ix.workdays.has(iso))) {
       weekend++;
     }
   }

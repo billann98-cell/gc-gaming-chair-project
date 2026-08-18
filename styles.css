@@ -248,10 +248,23 @@ header p.desc {
 }
 
 .day-band.weekend { background: color-mix(in srgb, var(--muted) 8%, transparent); }
-.day-band.holiday { background: color-mix(in srgb, var(--danger) 12%, transparent); }
+
+/* 每本日曆一條 cap 車道（top 由 JS 依序給 0px / 4px…），
+   所以同一天台灣與大陸都放假時，兩條色帶都看得到 */
+.day-band.cal .band-cap {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 3px;
+}
 
 .legend-swatch.weekend { background: color-mix(in srgb, var(--muted) 22%, transparent); }
-.legend-swatch.holiday { background: color-mix(in srgb, var(--danger) 30%, transparent); }
+
+.legend-cals {
+  display: flex;
+  gap: 18px;
+  flex-wrap: wrap;
+}
 
 /* 工期徽章：日曆天 + 工作日 */
 .days-badge em {

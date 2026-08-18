@@ -15,8 +15,9 @@ let scale = "week";
 let migrationInfo = null;
 let importState = { rows: [], newTracks: [] };
 let suppressClickUntil = 0; // 拖拉結束後短暫忽略 click，避免被當成點擊跳轉
-let holidayRanges = [];     // calendars/holidays.json 的內容
-let nonWorking = new Map(); // ISO 日期 → 假日名稱
+let calendars = [];         // calendars/holidays.json 的每本日曆（含顏色）
+let calIndex = {};          // 日曆 id → buildNonWorkingIndex 結果
+let nonWorking = { holidays: new Map(), workdays: new Map() }; // 所有日曆的聯集
 
 /* ---------- 小工具 ---------- */
 
@@ -198,14 +199,18 @@ function taskTooltip(track, task) {
   const s = parseISO(task.start), e = parseISO(task.end);
   const lines = [`${track.label} / ${task.title}`];
   if (s && e) {
-    const wd = workingDays(task.start, task.end, nonWorking);
-    const bd = nonWorkingBreakdown(task.start, task.end, nonWorking);
     lines.push(`${formatDate(s)} ~ ${formatDate(e)}`);
-    lines.push(`日曆天 ${taskDays(task)} 天　實際工作日 ${wd} 天`);
-    if (bd.weekend || bd.holiday) {
-      lines.push(`扣除：週末 ${bd.weekend} 天${bd.holiday ? `、假日 ${bd.holiday} 天` : ""}`);
-      if (bd.labels.length) lines.push(`　含：${bd.labels.join("、")}`);
-    }
+    lines.push(`日曆天 ${taskDays(task)} 天`);
+    // 兩邊的可工作天數不同，分開列才有意義：設計端看台灣、工廠端看大陸
+    calendars.forEach((cal) => {
+      const ix = calIndex[cal.id];
+      const wd = workingDays(task.start, task.end, ix);
+      const bd = nonWorkingBreakdown(task.start, task.end, ix);
+      lines.push(
+        `${cal.label.replace("國定假日", "")}可工作 ${wd} 天` +
+          (bd.holiday ? `（扣假日 ${bd.holiday} 天：${bd.labels.join("、")}）` : "")
+      );
+    });
   } else {
     lines.push("⚠ 缺少日期");
   }
@@ -436,40 +441,71 @@ function placeNarrowBarLabels() {
   });
 }
 
-// 把連續的非工作日合併成一條帶子再畫，避免 238 天各畫一格
-function buildDayBands(tl) {
-  const out = [];
+// 把連續的同類日子合併成一條帶子，避免 238 天各畫一格。
+// pick(iso, date) 回傳該日的標籤，null 表示不畫。
+function bandRuns(tl, pick) {
+  const runs = [];
   let run = null;
-  const flush = () => {
-    if (!run) return;
-    const left = (dayDiff(run.from, tl.start) / tl.totalDays) * 100;
-    const width = ((dayDiff(run.to, run.from) + 1) / tl.totalDays) * 100;
-    out.push(
-      `<div class="day-band ${run.kind}" style="left:${left}%;width:${width}%" title="${escapeHtml(run.label)}"></div>`
-    );
-    run = null;
-  };
-
   for (let d = tl.start; d <= tl.end; d = addDays(d, 1)) {
-    const iso = toISO(d);
-    const holiday = nonWorking.get(iso);
-    const weekend = isWeekend(d);
-    if (!holiday && !weekend) {
-      flush();
+    const label = pick(toISO(d), d);
+    if (!label) {
+      run = null;
       continue;
     }
-    // 假日的顏色和單純的週末不同，所以連續帶子要分開算
-    const kind = holiday ? "holiday" : "weekend";
-    const label = holiday || "週末";
-    if (run && run.kind === kind && run.label === label && dayDiff(d, run.to) === 1) {
+    if (run && run.label === label && dayDiff(d, run.to) === 1) {
       run.to = d;
     } else {
-      flush();
-      run = { from: d, to: d, kind, label };
+      run = { from: d, to: d, label };
+      runs.push(run);
     }
   }
-  flush();
+  return runs.map((r) => ({
+    label: r.label,
+    left: (dayDiff(r.from, tl.start) / tl.totalDays) * 100,
+    width: ((dayDiff(r.to, r.from) + 1) / tl.totalDays) * 100,
+    from: r.from,
+    to: r.to,
+  }));
+}
+
+// 每本日曆一個顏色、一條 cap 車道，所以同一天兩邊都放假時看得出是哪兩邊
+function buildDayBands(tl) {
+  const out = [];
+
+  // 週末（灰）：只有在沒有任何日曆標記的日子才單獨畫，避免和假日重疊變濁
+  bandRuns(tl, (iso, d) => (isWeekend(d) && !nonWorking.holidays.has(iso) ? "週末" : null)).forEach((r) => {
+    out.push(`<div class="day-band weekend" style="left:${r.left}%;width:${r.width}%" title="週末"></div>`);
+  });
+
+  calendars.forEach((cal, lane) => {
+    const ix = calIndex[cal.id];
+    if (!ix) return;
+    bandRuns(tl, (iso) => ix.holidays.get(iso) || null).forEach((r) => {
+      const tip = `${cal.label}：${r.label}（${formatDate(r.from)}${
+        toISO(r.from) === toISO(r.to) ? "" : " ~ " + formatDate(r.to)
+      }）`;
+      out.push(
+        `<div class="day-band cal" style="left:${r.left}%;width:${r.width}%;background:${cal.color}1f" title="${escapeHtml(tip)}">
+           <span class="band-cap" style="background:${cal.color};top:${lane * 4}px"></span>
+         </div>`
+      );
+    });
+  });
+
   return out.join("");
+}
+
+function renderHolidayLegend() {
+  const slot = $("cal-legend");
+  if (!slot) return;
+  slot.innerHTML = calendars
+    .map(
+      (c) =>
+        `<div class="legend-item"><span class="legend-swatch" style="background:${c.color}33;box-shadow:inset 0 2px 0 ${c.color}"></span>${escapeHtml(
+          c.label
+        )}</div>`
+    )
+    .join("");
 }
 
 async function loadHolidays() {
@@ -477,8 +513,10 @@ async function loadHolidays() {
     const res = await fetch(`calendars/holidays.json?_=${Date.now()}`);
     if (!res.ok) return;
     const json = await res.json();
-    holidayRanges = Array.isArray(json.ranges) ? json.ranges : [];
-    nonWorking = buildNonWorkingIndex(holidayRanges);
+    calendars = Array.isArray(json.calendars) ? json.calendars : [];
+    calIndex = {};
+    calendars.forEach((c) => (calIndex[c.id] = buildNonWorkingIndex(c.ranges)));
+    nonWorking = mergeNonWorkingIndexes(calendars.map((c) => calIndex[c.id]));
   } catch (e) {
     /* 沒有假日檔就只顯示週末 */
   }
@@ -629,10 +667,21 @@ function syncDateInputs(ti, tj) {
   if (s) s.value = t.start;
   if (e) e.value = t.end;
   const d = document.querySelector(`[data-days='${ti}-${tj}']`);
-  if (d) d.innerHTML = `${taskDays(t)} 天<em>${workingDays(t.start, t.end, nonWorking)} 工</em>`;
+  if (d) d.innerHTML = daysBadgeHtml(t);
 }
 
 /* ---------- 編輯面板 ---------- */
+
+// 日曆天 + 每本日曆各自的可工作天數，顏色與甘特圖上的假日帶一致
+function daysBadgeHtml(task) {
+  const per = calendars
+    .map(
+      (cal) =>
+        `<em style="color:${cal.color}" title="${escapeHtml(cal.label)}">${workingDays(task.start, task.end, calIndex[cal.id])}</em>`
+    )
+    .join("");
+  return `${taskDays(task)} 天${per}`;
+}
 
 function fieldError(el, msg) {
   el.classList.toggle("input-error", !!msg);
@@ -718,11 +767,7 @@ function renderEditPanel() {
             <input type="date" data-kind="task-start" data-track="${ti}" data-task="${tj}" value="${escapeHtml(task.start || "")}" />
             <span>~</span>
             <input type="date" data-kind="task-end" data-track="${ti}" data-task="${tj}" value="${escapeHtml(task.end || "")}" />
-            <span class="days-badge" data-days="${ti}-${tj}" title="日曆天 / 扣掉週末與假日後的工作日">${taskDays(task)} 天<em>${workingDays(
-              task.start,
-              task.end,
-              nonWorking
-            )} 工</em></span>
+            <span class="days-badge" data-days="${ti}-${tj}" title="日曆天 ／ 各地可工作天數">${daysBadgeHtml(task)}</span>
             <select data-kind="task-status" data-track="${ti}" data-task="${tj}">${statusOptions(task.status)}</select>
             <button class="btn-remove" data-kind="task-remove" data-track="${ti}" data-task="${tj}">刪除</button>
           </div>
@@ -1843,6 +1888,7 @@ async function init() {
 
   scale = loadScale();
   await loadHolidays(); // 要在第一次渲染前載入，底色帶與工作日才算得出來
+  renderHolidayLegend();
   data = migrateProject(raw);
   migrationInfo = data._migration || null;
   showBaseline = hasBaseline();
