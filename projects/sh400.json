@@ -2,15 +2,15 @@
   "schemaVersion": 3,
   "project": {
     "name": "SH400",
-    "description": "腳踏外觀提案 → MP 驗貨與出貨（2026/08 – 2027/04）"
+    "description": "提案 → MP 驗貨出貨（2026/08 – 2027/05）／來源：ROG_開發時程20260818.xlsx 工作表 SL401"
   },
   "phaseMarkers": [
-    { "label": "T0 完成", "date": "2026-11-30", "highlight": true },
-    { "label": "T1", "date": "2026-12-26", "highlight": false },
-    { "label": "PVT", "date": "2027-02-01", "highlight": false },
-    { "label": "金樣簽樣", "date": "2027-02-28", "highlight": false },
-    { "label": "MP 生產", "date": "2027-03-22", "highlight": false },
-    { "label": "出貨", "date": "2027-04-03", "highlight": true }
+    { "label": "T0 完成", "date": "2027-01-11", "highlight": true },
+    { "label": "T1 (DVT)", "date": "2027-02-28", "highlight": false },
+    { "label": "PVT", "date": "2027-04-07", "highlight": false },
+    { "label": "金樣簽樣", "date": "2027-04-23", "highlight": false },
+    { "label": "MP 生產", "date": "2027-05-15", "highlight": true },
+    { "label": "出貨", "date": "2027-05-28", "highlight": true }
   ],
   "tracks": [
     {
@@ -18,244 +18,35 @@
       "label": "產品開發",
       "color": "orange",
       "tasks": [
-        {
-          "title": "腳踏外觀提案",
-          "start": "2026-08-11",
-          "end": "2026-08-25",
-          "status": "upcoming",
-          "owner": "",
-          "note": "提案與修提",
-          "links": [],
-          "baseline": null,
-          "subtasks": []
-        },
-        {
-          "title": "3D圖紙製作",
-          "start": "2026-08-26",
-          "end": "2026-09-10",
-          "status": "upcoming",
-          "owner": "",
-          "note": "待泡棉款式確認",
-          "links": [],
-          "baseline": null,
-          "subtasks": []
-        },
-        {
-          "title": "模型製作 / 泡棉坐墊打樣",
-          "start": "2026-09-11",
-          "end": "2026-09-23",
-          "status": "upcoming",
-          "owner": "",
-          "note": "",
-          "links": [],
-          "baseline": null,
-          "subtasks": []
-        },
-        {
-          "title": "手板討論",
-          "start": "2026-09-24",
-          "end": "2026-09-28",
-          "status": "upcoming",
-          "owner": "",
-          "note": "",
-          "links": [],
-          "baseline": null,
-          "subtasks": []
-        },
-        {
-          "title": "外觀/結構修改 (10月連假)",
-          "start": "2026-09-29",
-          "end": "2026-10-10",
-          "status": "upcoming",
-          "owner": "",
-          "note": "",
-          "links": [],
-          "baseline": null,
-          "subtasks": []
-        },
-        {
-          "title": "DFM",
-          "start": "2026-10-11",
-          "end": "2026-10-21",
-          "status": "upcoming",
-          "owner": "",
-          "note": "對手件評估調整",
-          "links": [],
-          "baseline": null,
-          "subtasks": []
-        },
-        {
-          "title": "開模 (T0完成) / 包裝設計 / 修模",
-          "start": "2026-10-22",
-          "end": "2026-11-30",
-          "status": "upcoming",
-          "owner": "",
-          "note": "如有對手件需要修模，需同步進行",
-          "links": [],
-          "baseline": null,
-          "subtasks": []
-        },
-        {
-          "title": "T0討論、修模",
-          "start": "2026-12-01",
-          "end": "2026-12-14",
-          "status": "upcoming",
-          "owner": "",
-          "note": "",
-          "links": [],
-          "baseline": null,
-          "subtasks": []
-        },
-        {
-          "title": "咬花",
-          "start": "2026-12-15",
-          "end": "2026-12-25",
-          "status": "upcoming",
-          "owner": "",
-          "note": "",
-          "links": [],
-          "baseline": null,
-          "subtasks": []
-        },
-        {
-          "title": "生產T1 (DVT)",
-          "start": "2026-12-26",
-          "end": "2027-01-05",
-          "status": "upcoming",
-          "owner": "",
-          "note": "",
-          "links": [],
-          "baseline": null,
-          "subtasks": []
-        },
-        {
-          "title": "T1驗證 / 產品測試 / ASUS & DVT驗證",
-          "start": "2027-01-06",
-          "end": "2027-01-31",
-          "status": "upcoming",
-          "owner": "",
-          "note": "華碩內部測試",
-          "links": [],
-          "baseline": null,
-          "subtasks": []
-        },
-        {
-          "title": "小試產PVT 與 金樣生產",
-          "start": "2027-02-01",
-          "end": "2027-02-24",
-          "status": "upcoming",
-          "owner": "",
-          "note": "2/4-2/14 春節假期",
-          "links": [],
-          "baseline": null,
-          "subtasks": []
-        },
-        {
-          "title": "金樣會議與簽樣",
-          "start": "2027-02-25",
-          "end": "2027-02-28",
-          "status": "upcoming",
-          "owner": "",
-          "note": "",
-          "links": [],
-          "baseline": null,
-          "subtasks": []
-        },
-        {
-          "title": "MP備料",
-          "start": "2027-03-01",
-          "end": "2027-03-21",
-          "status": "upcoming",
-          "owner": "",
-          "note": "如設計變化少，可提早先備料",
-          "links": [],
-          "baseline": null,
-          "subtasks": []
-        },
-        {
-          "title": "MP生產",
-          "start": "2027-03-22",
-          "end": "2027-03-31",
-          "status": "upcoming",
-          "owner": "",
-          "note": "",
-          "links": [],
-          "baseline": null,
-          "subtasks": []
-        },
-        {
-          "title": "MP驗貨與出貨",
-          "start": "2027-03-31",
-          "end": "2027-04-03",
-          "status": "upcoming",
-          "owner": "",
-          "note": "與 MP生產 重疊 3/31 一天，依原始排程表",
-          "links": [],
-          "baseline": null,
-          "subtasks": []
-        }
-      ]
-    },
-    {
-      "key": "packaging",
-      "label": "包裝",
-      "color": "slate",
-      "tasks": [
-        {
-          "title": "包裝結構樣",
-          "start": "2026-10-22",
-          "end": "2026-11-04",
-          "status": "upcoming",
-          "owner": "",
-          "note": "依產品進度：隨「開模」開始（10/22），此時結構已定。範例中同為 Tooling 開始的階段",
-          "links": [],
-          "baseline": null,
-          "subtasks": []
-        },
-        {
-          "title": "製作 label",
-          "start": "2026-10-22",
-          "end": "2026-11-04",
-          "status": "upcoming",
-          "owner": "",
-          "note": "依產品進度：隨「開模」開始",
-          "links": [],
-          "baseline": null,
-          "subtasks": []
-        },
-        {
-          "title": "製作 QSG",
-          "start": "2026-10-22",
-          "end": "2026-11-04",
-          "status": "upcoming",
-          "owner": "",
-          "note": "依產品進度：隨「開模」開始",
-          "links": [],
-          "baseline": null,
-          "subtasks": []
-        },
-        {
-          "title": "Label 試刷",
-          "start": "2027-01-06",
-          "end": "2027-01-19",
-          "status": "upcoming",
-          "owner": "",
-          "note": "依產品進度：「生產T1」1/5 完成後試刷，與 T1驗證 同期進行。範例中位於 T2 階段",
-          "links": [],
-          "baseline": null,
-          "subtasks": []
-        },
-        {
-          "title": "QSG, 彩盒, label, 包材簽樣",
-          "start": "2027-02-15",
-          "end": "2027-02-28",
-          "status": "upcoming",
-          "owner": "",
-          "note": "依產品進度：供應商停工 2/14 結束後啟動，收在「金樣會議與簽樣」同一週，必須早於「MP備料」3/1 才能下包材",
-          "links": [],
-          "baseline": null,
-          "subtasks": []
-        }
+        { "title": "提案", "start": "2026-08-11", "end": "2026-08-16", "status": "upcoming", "owner": "", "note": "提案與修提。Bill feedback：外觀提案只有一周，缺少來回的時間，請預抓 2 次的來回確認。8/16 ID Request", "links": [], "baseline": null, "subtasks": [] },
+        { "title": "提案回覆", "start": "2026-08-17", "end": "2026-08-17", "status": "upcoming", "owner": "", "note": "原表僅有開始日，視為單日", "links": [], "baseline": null, "subtasks": [] },
+        { "title": "外觀提案", "start": "2026-08-18", "end": "2026-08-24", "status": "upcoming", "owner": "Wayne", "note": "", "links": [], "baseline": null, "subtasks": [] },
+        { "title": "提案討論-1", "start": "2026-08-24", "end": "2026-08-26", "status": "upcoming", "owner": "Bill", "note": "與「外觀提案」在 8/24 重疊一天，依原表", "links": [], "baseline": null, "subtasks": [] },
+        { "title": "提案回覆", "start": "2026-08-27", "end": "2026-08-27", "status": "upcoming", "owner": "Bill", "note": "原表僅有開始日，視為單日", "links": [], "baseline": null, "subtasks": [] },
+        { "title": "提案修改", "start": "2026-08-28", "end": "2026-09-01", "status": "upcoming", "owner": "BK", "note": "", "links": [], "baseline": null, "subtasks": [] },
+        { "title": "提案討論-2", "start": "2026-09-02", "end": "2026-09-05", "status": "upcoming", "owner": "ASUS、BK", "note": "", "links": [], "baseline": null, "subtasks": [] },
+        { "title": "提案回覆", "start": "2026-09-07", "end": "2026-09-07", "status": "upcoming", "owner": "", "note": "原表僅有開始日，視為單日", "links": [], "baseline": null, "subtasks": [] },
+        { "title": "3D圖紙製作", "start": "2026-09-08", "end": "2026-09-11", "status": "upcoming", "owner": "Wayne", "note": "", "links": [], "baseline": null, "subtasks": [] },
+        { "title": "3D圖紙討論與修改", "start": "2026-09-14", "end": "2026-09-18", "status": "upcoming", "owner": "ASUS、BK", "note": "內含兩次兩回討論", "links": [], "baseline": null, "subtasks": [] },
+        { "title": "3D結構製作", "start": "2026-09-21", "end": "2026-09-25", "status": "upcoming", "owner": "BK", "note": "Bill feedback：3D圖紙時間是否可以壓縮？這邊要出模具報價 >> 需要有結構才能估價。8/20 首版 Request", "links": [], "baseline": null, "subtasks": [] },
+        { "title": "外觀結構討論與修改", "start": "2026-09-29", "end": "2026-10-05", "status": "upcoming", "owner": "ASUS、BK", "note": "10/1-10/5 CN 國慶", "links": [], "baseline": null, "subtasks": [] },
+        { "title": "模型製作 / 泡棉座墊打樣", "start": "2026-10-06", "end": "2026-10-19", "status": "upcoming", "owner": "", "note": "10/9、10/11 台灣國慶。Bill feedback：於 3D 圖紙繪製過程中同步打樣椅座，同步執行不影響 >> 需要有確認圖面才能打樣", "links": [], "baseline": null, "subtasks": [] },
+        { "title": "手板討論", "start": "2026-10-20", "end": "2026-10-23", "status": "upcoming", "owner": "", "note": "Bill feedback：ASUS 中秋休假，沒人在", "links": [], "baseline": null, "subtasks": [] },
+        { "title": "外觀結構修改-1", "start": "2026-10-24", "end": "2026-10-28", "status": "upcoming", "owner": "", "note": "", "links": [], "baseline": null, "subtasks": [] },
+        { "title": "手板二次製作", "start": "2026-10-29", "end": "2026-11-08", "status": "upcoming", "owner": "", "note": "製作第二次模型", "links": [], "baseline": null, "subtasks": [] },
+        { "title": "手板討論", "start": "2026-11-09", "end": "2026-11-13", "status": "upcoming", "owner": "", "note": "", "links": [], "baseline": null, "subtasks": [] },
+        { "title": "外觀結構修改-2", "start": "2026-11-14", "end": "2026-11-19", "status": "upcoming", "owner": "", "note": "Bill feedback：10 月連假時間不夠，外觀修改請預抓 2 次的來回時間", "links": [], "baseline": null, "subtasks": [] },
+        { "title": "DFM", "start": "2026-11-20", "end": "2026-11-30", "status": "upcoming", "owner": "", "note": "對手件評估調整。Bill feedback：10/11 為假日，請往後延", "links": [], "baseline": null, "subtasks": [] },
+        { "title": "開模 (T0完成) / 包裝設計 / 修模", "start": "2026-12-01", "end": "2027-01-11", "status": "upcoming", "owner": "", "note": "如有對手件需要修模，需同步進行。Bill feedback：一般開模需要時間？修模的時間？是否有抓來回討論時間？", "links": [], "baseline": null, "subtasks": [] },
+        { "title": "T0討論、修模", "start": "2027-01-12", "end": "2027-01-25", "status": "upcoming", "owner": "", "note": "內含 1/1-1/3 元旦。現以塑膠小模具約 30-35 天、塑膠大模具 50-55 天抓；如需使用鋁合金，大件約 60 天、小件 50 天", "links": [], "baseline": null, "subtasks": [] },
+        { "title": "咬花", "start": "2027-01-26", "end": "2027-02-27", "status": "upcoming", "owner": "", "note": "原表 DURATION 為 10 天，但起訖跨 32 天 —— 因為中國新年假期(1/28-2/20)整段落在中間。Bill feedback：咬花時間大概多久？咬花後是否需要時間來回確認？", "links": [], "baseline": null, "subtasks": [] },
+        { "title": "生產T1 (DVT)、底盤備料", "start": "2027-02-28", "end": "2027-03-10", "status": "upcoming", "owner": "", "note": "底盤為 45-60 天，建議需要提早備料且設計不可動", "links": [], "baseline": null, "subtasks": [] },
+        { "title": "T1驗證 / 產品測試 / ASUS & DVT驗證", "start": "2027-03-11", "end": "2027-04-06", "status": "upcoming", "owner": "", "note": "華碩內部測試。Bill feedback：漆料、耐磨測試、落摔可以提早測試，不用等到 DVT", "links": [], "baseline": null, "subtasks": [] },
+        { "title": "小試產PVT 與 金樣生產", "start": "2027-04-07", "end": "2027-04-19", "status": "upcoming", "owner": "", "note": "4/3-4/6 清明", "links": [], "baseline": null, "subtasks": [] },
+        { "title": "金樣會議與簽樣", "start": "2027-04-20", "end": "2027-04-23", "status": "upcoming", "owner": "", "note": "需至大陸簽樣", "links": [], "baseline": null, "subtasks": [] },
+        { "title": "MP備料", "start": "2027-04-24", "end": "2027-05-14", "status": "upcoming", "owner": "", "note": "5/1-5/5 五一長假。如設計變化少，可提早先備料。Bill feedback：是否有長交期備料需要提前備料？底盤為 45-60 天，建議提早備料且設計不可動", "links": [], "baseline": null, "subtasks": [] },
+        { "title": "MP生產", "start": "2027-05-15", "end": "2027-05-24", "status": "upcoming", "owner": "", "note": "Bill feedback：請問預計量能是多少？（目前無設計未知，但 core 約 100-120 張/天）", "links": [], "baseline": null, "subtasks": [] },
+        { "title": "MP驗貨與出貨", "start": "2027-05-25", "end": "2027-05-28", "status": "upcoming", "owner": "", "note": "", "links": [], "baseline": null, "subtasks": [] }
       ]
     },
     {
@@ -263,72 +54,24 @@
       "label": "認證",
       "color": "rust",
       "tasks": [
-        {
-          "title": "認證開案",
-          "start": "2026-10-22",
-          "end": "2026-11-04",
-          "status": "upcoming",
-          "owner": "",
-          "note": "依產品進度：隨「開模」開始，規格此時已凍結。認證是原始排程完全缺漏的一條",
-          "links": [],
-          "baseline": null,
-          "subtasks": []
-        },
-        {
-          "title": "文件審查",
-          "start": "2026-11-05",
-          "end": "2026-11-18",
-          "status": "upcoming",
-          "owner": "",
-          "note": "接續認證開案，不需實體件",
-          "links": [],
-          "baseline": null,
-          "subtasks": []
-        },
-        {
-          "title": "送樣",
-          "start": "2026-11-30",
-          "end": "2026-12-13",
-          "status": "upcoming",
-          "owner": "",
-          "note": "依產品進度：「開模 (T0完成)」11/30 當天起送樣 —— 這是第一次有實體件可送。11/19–11/29 的空檔是在等 T0 件，不是浪費。若實驗室要求 T1 等級樣品，須改到 1/5 之後，整條認證鏈會往後推一個月",
-          "links": [],
-          "baseline": null,
-          "subtasks": []
-        },
-        {
-          "title": "認證測試 (4-6wks)",
-          "start": "2026-11-30",
-          "end": "2026-12-27",
-          "status": "upcoming",
-          "owner": "",
-          "note": "與送樣同時開始（樣品到就開測），4 週。名稱為 4-6 週，若採 6 週需再往後 2 週，仍能在 MP備料 前取證",
-          "links": [],
-          "baseline": null,
-          "subtasks": []
-        },
-        {
-          "title": "投件 (2wks)",
-          "start": "2026-12-28",
-          "end": "2027-01-10",
-          "status": "upcoming",
-          "owner": "",
-          "note": "測試結束隔天即投件，不等到 PVT。這樣同時避開春節停工並消除中間空檔",
-          "links": [],
-          "baseline": null,
-          "subtasks": []
-        },
-        {
-          "title": "取證",
-          "start": "2027-01-11",
-          "end": "2027-01-24",
-          "status": "upcoming",
-          "owner": "",
-          "note": "依產品進度：1/24 取證，早於「MP備料」3/1 與「MP生產」3/22 —— 先取證再量產，不必冒著未取證就投料的風險",
-          "links": [],
-          "baseline": null,
-          "subtasks": []
-        }
+        { "title": "認證開案", "start": "2026-11-20", "end": "2026-12-03", "status": "upcoming", "owner": "", "note": "與 DFM 同期開案，規格此時已凍結。西班牙與土耳其需有 EN1335 才能放行；另需確認是否有其他國家新增規定", "links": [], "baseline": null, "subtasks": [] },
+        { "title": "文件審查", "start": "2026-12-04", "end": "2026-12-17", "status": "upcoming", "owner": "", "note": "確認放行標準是否與歐盟相同（EN 1335-1 2020 與 EN 1335-2 2018）", "links": [], "baseline": null, "subtasks": [] },
+        { "title": "送樣（T0 件）", "start": "2027-01-12", "end": "2027-01-19", "status": "upcoming", "owner": "", "note": "⚠ 必須用 T0 件送測。反推：要在 MP生產(5/15) 前取證，最晚 3/4 就得送測，但 T1 要到 3/10 才完成 —— 等 T1 件就一定來不及。實驗室是否接受 T0 件需確認", "links": [], "baseline": null, "subtasks": [] },
+        { "title": "EN1335-1 + EN1335-2 測試", "start": "2027-01-19", "end": "2027-04-07", "status": "upcoming", "owner": "", "note": "EN1335-1 約 7 個工作天 + EN1335-2 約 30 個工作天 = 37 個工作天，且兩份在同一份報告書內、無法先出其中一份。期間含中國新年假期(1/28-2/20)，所以日曆天長達 79 天", "links": [], "baseline": null, "subtasks": [] },
+        { "title": "取證", "start": "2027-04-07", "end": "2027-04-14", "status": "upcoming", "owner": "", "note": "4/14 取證，早於 MP備料(4/24) 與 MP生產(5/15)。工作表另註「目前的更動無須複測 BIFMA & EN1335」—— 若確定不需複測，本軌道可大幅簡化", "links": [], "baseline": null, "subtasks": [] },
+        { "title": "BIFMA 5.1（如需複測）", "start": "2027-01-19", "end": "2027-03-16", "status": "upcoming", "owner": "", "note": "約 20 個工作天。工作表註明目前更動無須複測，故列為條件性項目；若確認不需要請直接刪除", "links": [], "baseline": null, "subtasks": [] }
+      ]
+    },
+    {
+      "key": "packaging",
+      "label": "包裝",
+      "color": "slate",
+      "tasks": [
+        { "title": "包裝結構樣", "start": "2026-12-01", "end": "2026-12-14", "status": "upcoming", "owner": "", "note": "隨「開模 / 包裝設計」開始（12/1），原表該列本身就含包裝設計", "links": [], "baseline": null, "subtasks": [] },
+        { "title": "製作 label", "start": "2026-12-01", "end": "2026-12-14", "status": "upcoming", "owner": "", "note": "隨「開模 / 包裝設計」開始", "links": [], "baseline": null, "subtasks": [] },
+        { "title": "製作 QSG", "start": "2026-12-01", "end": "2026-12-14", "status": "upcoming", "owner": "", "note": "隨「開模 / 包裝設計」開始", "links": [], "baseline": null, "subtasks": [] },
+        { "title": "Label 試刷", "start": "2027-03-11", "end": "2027-03-24", "status": "upcoming", "owner": "", "note": "「生產T1」3/10 完成後試刷，與 T1驗證 同期", "links": [], "baseline": null, "subtasks": [] },
+        { "title": "QSG, 彩盒, label, 包材簽樣", "start": "2027-04-10", "end": "2027-04-23", "status": "upcoming", "owner": "", "note": "收在「金樣會議與簽樣」同一週(4/20-4/23)，必須早於「MP備料」4/24 才能下包材", "links": [], "baseline": null, "subtasks": [] }
       ]
     },
     {
@@ -336,94 +79,14 @@
       "label": "行銷素材",
       "color": "olive",
       "tasks": [
-        {
-          "title": "MKT Kick off",
-          "start": "2026-10-22",
-          "end": "2026-11-04",
-          "status": "upcoming",
-          "owner": "",
-          "note": "依產品進度：隨「開模」開始",
-          "links": [],
-          "baseline": null,
-          "subtasks": []
-        },
-        {
-          "title": "Naming",
-          "start": "2026-10-22",
-          "end": "2026-11-04",
-          "status": "upcoming",
-          "owner": "",
-          "note": "依產品進度：隨「開模」開始",
-          "links": [],
-          "baseline": null,
-          "subtasks": []
-        },
-        {
-          "title": "網頁 layout",
-          "start": "2026-11-05",
-          "end": "2026-11-18",
-          "status": "upcoming",
-          "owner": "",
-          "note": "接續 Kick off 與 Naming",
-          "links": [],
-          "baseline": null,
-          "subtasks": []
-        },
-        {
-          "title": "Wording",
-          "start": "2026-11-05",
-          "end": "2027-03-21",
-          "status": "upcoming",
-          "owner": "",
-          "note": "持續性工作，從 Kick off 之後一路寫到「MP備料」結束（3/21），出貨前定稿。範例中同樣橫跨到 MP",
-          "links": [],
-          "baseline": null,
-          "subtasks": []
-        },
-        {
-          "title": "Photo Brief",
-          "start": "2026-11-30",
-          "end": "2026-12-13",
-          "status": "upcoming",
-          "owner": "",
-          "note": "依產品進度：T0 完成後即可依實體件擬定拍攝需求",
-          "links": [],
-          "baseline": null,
-          "subtasks": []
-        },
-        {
-          "title": "拍攝",
-          "start": "2027-01-06",
-          "end": "2027-01-19",
-          "status": "upcoming",
-          "owner": "",
-          "note": "依產品進度：必須等「咬花」12/25 與「生產T1」1/5 都完成，外觀才定案，否則拍完要重拍",
-          "links": [],
-          "baseline": null,
-          "subtasks": []
-        },
-        {
-          "title": "修圖",
-          "start": "2027-01-20",
-          "end": "2027-02-16",
-          "status": "upcoming",
-          "owner": "",
-          "note": "接續拍攝 4 週。⚠ 中段落在春節（2/4-2/14），若外包修圖需注意；提前到 1/6 起與拍攝並行可避開",
-          "links": [],
-          "baseline": null,
-          "subtasks": []
-        },
-        {
-          "title": "Sales Kit 產品照/網頁",
-          "start": "2027-03-08",
-          "end": "2027-03-21",
-          "status": "upcoming",
-          "owner": "",
-          "note": "依產品進度：在「MP生產」3/22 前備妥，出貨即可上架。範例中同為 MP 階段",
-          "links": [],
-          "baseline": null,
-          "subtasks": []
-        }
+        { "title": "MKT Kick off", "start": "2026-12-01", "end": "2026-12-14", "status": "upcoming", "owner": "", "note": "隨「開模」開始，外觀已定案", "links": [], "baseline": null, "subtasks": [] },
+        { "title": "Naming", "start": "2026-12-01", "end": "2026-12-14", "status": "upcoming", "owner": "", "note": "隨「開模」開始", "links": [], "baseline": null, "subtasks": [] },
+        { "title": "網頁 layout", "start": "2026-12-15", "end": "2026-12-28", "status": "upcoming", "owner": "", "note": "接續 Kick off 與 Naming", "links": [], "baseline": null, "subtasks": [] },
+        { "title": "Wording", "start": "2026-12-15", "end": "2027-05-14", "status": "upcoming", "owner": "", "note": "持續性工作，寫到「MP備料」結束(5/14)，出貨前定稿", "links": [], "baseline": null, "subtasks": [] },
+        { "title": "Photo Brief", "start": "2027-01-12", "end": "2027-01-25", "status": "upcoming", "owner": "", "note": "T0 完成(1/11)後即可依實體件擬定拍攝需求", "links": [], "baseline": null, "subtasks": [] },
+        { "title": "拍攝", "start": "2027-03-11", "end": "2027-03-24", "status": "upcoming", "owner": "", "note": "必須等「咬花」2/27 與「生產T1」3/10 都完成，外觀才定案，否則拍完要重拍", "links": [], "baseline": null, "subtasks": [] },
+        { "title": "修圖", "start": "2027-03-25", "end": "2027-04-21", "status": "upcoming", "owner": "", "note": "接續拍攝 4 週。期間含清明假期(4/3-4/6)", "links": [], "baseline": null, "subtasks": [] },
+        { "title": "Sales Kit 產品照/網頁", "start": "2027-04-26", "end": "2027-05-14", "status": "upcoming", "owner": "", "note": "在「MP生產」5/15 前備妥，出貨即可上架。期間含五一長假(5/1-5/5)，故拉長至 19 天", "links": [], "baseline": null, "subtasks": [] }
       ]
     }
   ]
