@@ -74,6 +74,24 @@ header p.desc {
   background: var(--card-bg);
 }
 
+/* Ctrl+滾輪縮放時短暫顯示目前刻度 */
+.zoom-hint {
+  position: sticky;
+  top: 8px;
+  z-index: 20;
+  float: right;
+  margin: 0 8px -28px 0;
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: var(--text);
+  color: var(--card-bg);
+  font-size: 0.72rem;
+  font-weight: 700;
+  pointer-events: none;
+}
+
+.zoom-hint[hidden] { display: none; }
+
 .gantt {
   position: relative;
   display: grid;

@@ -12,6 +12,35 @@ let editSha = null;     // 載入時的 blob sha，儲存時帶回去做樂觀�
 let showBaseline = false;
 let timeline = null;    // buildTimeline() 的結果，渲染與拖拉共用
 let scale = "week";
+let pxPerDay = 7.7;         // 縮放的唯一狀態；scale 由它推導
+const ZOOM_KEY = `gc-zoom:${projectId}`;
+const LABEL_W = 170;        // 左側軌道名稱欄寬，與 CSS 的 grid-template-columns 一致
+const MIN_PX = 1.5;
+const MAX_PX = 40;
+
+// 三個刻度各自的代表縮放值（也就是按刻度鈕時跳到的位置）
+const SCALE_PX = { day: 26, week: 7.7, month: 2.9 };
+
+// 由每天像素反推該用哪個刻度：欄位太窄就換更粗的刻度，標籤才讀得到
+function scaleForPx(p) {
+  if (p >= 13) return "day";
+  if (p >= 3.4) return "week";
+  return "month";
+}
+
+function clampPx(p) {
+  return Math.min(MAX_PX, Math.max(MIN_PX, p));
+}
+
+// pxPerDay 只是「最小寬度」的依據：.gantt 用的是 min-width，容器更寬時圖表會被拉開，
+// 實際每天的像素會大於 pxPerDay。任何要把「螢幕座標 ↔ 日期」互換的地方都必須量實際寬度，
+// 否則在沒有溢出的縮放程度下會算錯位置。
+function actualPxPerDay() {
+  const chart = document.querySelector(".chart-col");
+  if (!chart || !timeline || !timeline.totalDays) return pxPerDay;
+  const w = chart.getBoundingClientRect().width;
+  return w > 0 ? w / timeline.totalDays : pxPerDay;
+}
 let migrationInfo = null;
 let importState = { rows: [], newTracks: [] };
 let suppressClickUntil = 0; // 拖拉結束後短暫忽略 click，避免被當成點擊跳轉
@@ -35,9 +64,18 @@ function statusOptions(selected) {
   ).join("");
 }
 
-function loadScale() {
-  const s = localStorage.getItem(SCALE_KEY);
-  return SCALES.includes(s) ? s : "week";
+function loadZoom() {
+  const z = Number(localStorage.getItem(ZOOM_KEY));
+  if (z > 0) return clampPx(z);
+  // 相容舊版只存刻度的設定
+  const old = localStorage.getItem(SCALE_KEY);
+  return SCALE_PX[SCALES.includes(old) ? old : "week"];
+}
+
+function setZoom(p) {
+  pxPerDay = clampPx(p);
+  scale = scaleForPx(pxPerDay);
+  localStorage.setItem(ZOOM_KEY, String(pxPerDay));
 }
 
 /* ---------- 未儲存狀態與草稿 ---------- */
@@ -333,9 +371,8 @@ function renderGantt() {
 
   $("range-label").textContent = `${formatDateShort(tl.start)} – ${formatDateShort(tl.end)}`;
 
-  // 依欄位數量撐開寬度，讓每一欄都還讀得到標籤（長專案就靠橫向捲動）
-  const minCol = tl.scale === "day" ? 26 : tl.scale === "week" ? 54 : 88;
-  document.querySelector(".gantt").style.minWidth = `${Math.max(900, 170 + tl.columns.length * minCol)}px`;
+  // 寬度直接由「每天幾像素」決定，這樣 Ctrl+滾輪的縮放才是連續的
+  document.querySelector(".gantt").style.minWidth = `${Math.round(LABEL_W + tl.totalDays * pxPerDay)}px`;
 
   // 表頭第一列：週刻度顯示月份、月刻度顯示年
   $("scale-groups").innerHTML = tl.groups
@@ -780,9 +817,8 @@ function attachDrag(bar, task, ti, tj, chartEl) {
     if (!editMode) return;
     e.preventDefault();
     const tl = timeline;
-    const chartWidth = chartEl.getBoundingClientRect().width;
-    if (!chartWidth) return;
-    const pxPerDay = chartWidth / tl.totalDays;
+    if (!chartEl.getBoundingClientRect().width) return;
+    const dragPxPerDay = actualPxPerDay(); // 用實際渲染寬度，不是全域的 pxPerDay（那只是最小值）
 
     const mode =
       e.target.dataset.handle === "start"
@@ -811,7 +847,7 @@ function attachDrag(bar, task, ti, tj, chartEl) {
     };
 
     const onMove = (ev) => {
-      const d = Math.round((ev.clientX - startX) / pxPerDay);
+      const d = Math.round((ev.clientX - startX) / dragPxPerDay);
       if (mode === "move") {
         ns = addDays(os, d);
         ne = addDays(oe, d);
@@ -2019,11 +2055,60 @@ $("save-btn").addEventListener("click", async () => {
 $("scale-toggle").addEventListener("click", (e) => {
   const b = e.target.closest("button[data-scale]");
   if (!b) return;
-  scale = b.dataset.scale;
-  localStorage.setItem(SCALE_KEY, scale);
+  setZoom(SCALE_PX[b.dataset.scale] || SCALE_PX.week);
   refreshView();
   scrollToToday();
 });
+
+/* ---------- Ctrl + 滾輪縮放 ---------- */
+
+// 縮放時游標下的那一天必須留在原位，否則畫面會亂跳。
+// 因為換刻度時 timeline.start 也會變（週對齊到週一、月對齊到 1 號），
+// 所以要記「游標下的實際日期」再換算回新的位置，不能只記像素偏移。
+function dateAtClientX(clientX) {
+  const scroller = $("gantt-scroll");
+  const rect = scroller.getBoundingClientRect();
+  const xInContent = scroller.scrollLeft + (clientX - rect.left) - LABEL_W;
+  return addDays(timeline.start, Math.round(xInContent / actualPxPerDay()));
+}
+
+function scrollDateToClientX(date, clientX) {
+  const scroller = $("gantt-scroll");
+  const rect = scroller.getBoundingClientRect();
+  const target = LABEL_W + dayDiff(date, timeline.start) * actualPxPerDay();
+  scroller.scrollLeft = target - (clientX - rect.left);
+}
+
+$("gantt-scroll").addEventListener(
+  "wheel",
+  (e) => {
+    // 沒按 Ctrl 就維持原本的捲動行為；觸控板的雙指縮放也會帶 ctrlKey
+    if (!e.ctrlKey) return;
+    e.preventDefault(); // 不讓瀏覽器整頁縮放
+
+    const anchorDate = dateAtClientX(e.clientX);
+    const before = pxPerDay;
+    setZoom(pxPerDay * Math.exp(-e.deltaY * 0.0022));
+    if (pxPerDay === before) return; // 已到縮放上下限
+
+    refreshView();
+    scrollDateToClientX(anchorDate, e.clientX);
+    showZoomHint();
+  },
+  { passive: false }
+);
+
+let zoomHintTimer = null;
+
+function showZoomHint() {
+  const el = $("zoom-hint");
+  if (!el) return;
+  const label = { day: "日", week: "週", month: "月" }[scale];
+  el.textContent = `${label}刻度 ・ ${pxPerDay.toFixed(1)} px/天`;
+  el.hidden = false;
+  clearTimeout(zoomHintTimer);
+  zoomHintTimer = setTimeout(() => (el.hidden = true), 1200);
+}
 
 $("baseline-view-btn").addEventListener("click", () => {
   if (!hasBaseline()) {
@@ -2110,7 +2195,8 @@ async function init() {
     return;
   }
 
-  scale = loadScale();
+  pxPerDay = loadZoom();
+  scale = scaleForPx(pxPerDay);
   await loadHolidays(); // 要在第一次渲染前載入，底色帶與工作日才算得出來
   renderHolidayLegend();
   renderHolidayNotes();
