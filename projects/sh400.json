@@ -111,7 +111,7 @@
         {
           "title": "提案討論-2",
           "start": "2026-09-02",
-          "end": "2026-09-05",
+          "end": "2026-09-08",
           "status": "done",
           "owner": "ASUS、BK",
           "note": "",
@@ -121,8 +121,8 @@
         },
         {
           "title": "提案回覆",
-          "start": "2026-09-07",
-          "end": "2026-09-07",
+          "start": "2026-09-08",
+          "end": "2026-09-09",
           "status": "done",
           "owner": "",
           "note": "原表僅有開始日，視為單日",
@@ -360,6 +360,28 @@
           "links": [],
           "baseline": null,
           "subtasks": []
+        },
+        {
+          "title": "提案3",
+          "start": "2026-09-08",
+          "end": "2026-09-14",
+          "status": "upcoming",
+          "owner": "",
+          "note": "",
+          "links": [],
+          "baseline": null,
+          "subtasks": []
+        },
+        {
+          "title": "提案3 Feedback",
+          "start": "2026-09-14",
+          "end": "2026-09-15",
+          "status": "upcoming",
+          "owner": "",
+          "note": "",
+          "links": [],
+          "baseline": null,
+          "subtasks": []
         }
       ]
     },
@@ -587,6 +609,17 @@
           "status": "upcoming",
           "owner": "",
           "note": "在「MP生產」5/15 前備妥，出貨即可上架。期間含五一長假(5/1-5/5)，故拉長至 19 天",
+          "links": [],
+          "baseline": null,
+          "subtasks": []
+        },
+        {
+          "title": "新任務",
+          "start": "2026-08-11",
+          "end": "2026-08-17",
+          "status": "upcoming",
+          "owner": "",
+          "note": "",
           "links": [],
           "baseline": null,
           "subtasks": []
