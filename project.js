@@ -2186,12 +2186,15 @@ async function init() {
     return;
   }
   let raw;
+  let loadedVia = "pages";
   try {
-    const res = await fetch(`${filePath}?_=${Date.now()}`);
-    if (!res.ok) throw new Error(String(res.status));
-    raw = await res.json();
+    const r = await readRepoJson(filePath);
+    raw = r.json;
+    loadedVia = r.via;
   } catch (e) {
-    document.body.innerHTML = `<p style="padding:40px;">找不到或無法解析專案「${escapeHtml(projectId)}」（${escapeHtml(e.message)}）。</p>`;
+    document.body.innerHTML = `<p style="padding:40px;">
+      找不到或無法解析專案「${escapeHtml(projectId)}」（${escapeHtml(e.message)}）。
+      <br /><a href="index.html">← 回專案列表</a></p>`;
     return;
   }
 
@@ -2207,6 +2210,17 @@ async function init() {
   scrollToToday();
   showMigrationBanner();
   loadLastUpdated();
+
+  // 剛建立的專案會走到這條路徑，講清楚為什麼，不然看起來像出錯
+  if (loadedVia === "api") {
+    setBanner(
+      "fresh-pages",
+      "info",
+      `這個專案剛建立或剛更新，GitHub Pages 還在重新發佈（約 1–2 分鐘）。
+       目前直接從 GitHub 讀取最新內容，功能完全正常，稍後重新整理就會改用一般路徑。`,
+      [{ label: "知道了", run: () => dropBanner("fresh-pages") }]
+    );
+  }
 
   const draft = readDraft();
   if (draft && draft.data) {

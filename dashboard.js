@@ -53,18 +53,61 @@ function renderBanners() {
 
 /* ---------- 載入 ---------- */
 
+const PENDING_KEY = "gc-pending-project";
+
+/* 剛建立的專案有兩種讀不到的情況，要分開處理：
+   - 專案檔本身：Pages 上還不存在 → readRepoJson 會自動退回 API
+   - index.json：檔案「存在但是舊的」，不會 404，所以退回機制救不到，
+     列表會安靜地少一筆，看起來像建立失敗。
+   因此建立成功時記一個待確認的 id，發現它不在靜態清單裡就改讀 API 版本。 */
 async function loadIndex() {
-  const res = await fetch(`projects/index.json?_=${Date.now()}`);
-  if (!res.ok) throw new Error("讀取專案清單失敗");
-  return res.json();
+  const { json } = await readRepoJson("projects/index.json");
+  const pending = readPending();
+  if (!pending) return json;
+
+  const ids = (json.projects || []).map((p) => p.id);
+  if (ids.includes(pending.id)) {
+    sessionStorage.removeItem(PENDING_KEY); // Pages 已追上
+    return json;
+  }
+
+  try {
+    const fresh = await ghGetFile("projects/index.json");
+    if (fresh.json) {
+      setBanner(
+        "pending",
+        "info",
+        `剛建立的專案「${escapeHtml(pending.name || pending.id)}」在 GitHub 上已經存在，
+         但 GitHub Pages 還在重新發佈（約 1–2 分鐘）。清單暫時直接從 GitHub 讀取。`,
+        [{ label: "知道了", run: () => dropBanner("pending") }]
+      );
+      return fresh.json;
+    }
+  } catch (e) {
+    /* 讀不到就用靜態版本，至少其他專案還在 */
+  }
+  return json;
+}
+
+function readPending() {
+  try {
+    const p = JSON.parse(sessionStorage.getItem(PENDING_KEY) || "null");
+    // 超過 10 分鐘還沒出現就別再查了，避免每次載入都多打一次 API
+    if (!p || Date.now() - p.at > 10 * 60 * 1000) {
+      sessionStorage.removeItem(PENDING_KEY);
+      return null;
+    }
+    return p;
+  } catch (e) {
+    return null;
+  }
 }
 
 // 單一專案讀取失敗不能拖垮整個列表
 async function loadProject(id) {
   try {
-    const res = await fetch(`projects/${id}.json?_=${Date.now()}`);
-    if (!res.ok) return { error: `HTTP ${res.status}` };
-    return { data: migrateProject(await res.json()) };
+    const { json, via } = await readRepoJson(`projects/${id}.json`);
+    return { data: migrateProject(json), via };
   } catch (e) {
     return { error: e.message || "JSON 解析失敗" };
   }
@@ -284,6 +327,12 @@ async function createProject() {
       return;
     }
 
+    // 記下來：回到清單時若 Pages 還沒追上，要改讀 API 版本的 index
+    try {
+      sessionStorage.setItem(PENDING_KEY, JSON.stringify({ id, name, at: Date.now() }));
+    } catch (e) {
+      /* 存不進去不影響建立 */
+    }
     window.location.href = `project.html?id=${encodeURIComponent(id)}`;
   } catch (e) {
     showNameError(`建立失敗：${e.message}`);

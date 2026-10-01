@@ -158,6 +158,24 @@ async function ghPutFile(path, jsonObj, sha, message) {
   }
 }
 
+/* 讀取 repo 裡的 JSON：先走 GitHub Pages 的靜態檔（快、不吃 API 額度），
+   讀不到才改走 GitHub API。
+
+   這是必要的，不是保險：寫入是透過 API 直接 commit，立刻生效；但 Pages 要重新建置
+   1-2 分鐘才會提供新檔案。剛建立完專案就跳轉過去，靜態檔必然還是 404。
+   API 反映的是 main 的當下狀態，所以一定讀得到。 */
+async function readRepoJson(path) {
+  try {
+    const res = await fetch(`${path}?_=${Date.now()}`);
+    if (res.ok) return { json: await res.json(), via: "pages" };
+  } catch (e) {
+    /* 掉到下面走 API */
+  }
+  const api = await ghGetFile(path); // 失敗會往外丟，由呼叫端處理
+  if (api.missing || !api.json) throw new Error(`${path} 在 GitHub 上也不存在`);
+  return { json: api.json, via: "api" };
+}
+
 // 需要覆蓋既有檔案又「不在意」原本內容時才用（例如把專案加進 index.json 前已先讀過）。
 // 一般編輯流程請直接用 ghPutFile 並帶入載入時的 sha。
 async function saveJsonFile(path, jsonObj, message) {
