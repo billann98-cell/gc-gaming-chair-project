@@ -216,12 +216,22 @@ function contentDateRange(data) {
 
 // 依刻度把範圍對齊到完整的週或月，並產出欄位。
 // 欄寬用「天數比例」而不是等分，因為各月天數不同。
-function buildTimeline(data, scale) {
+function buildTimeline(data, scale, pad) {
   const useScale = SCALES.includes(scale) ? scale : "week";
   const content = contentDateRange(data);
 
   // 完全沒有日期時，至少顯示今天前後各一個月，讓畫面不會空白
-  const base = content || { min: addDays(today(), -14), max: addDays(today(), 30) };
+  const content0 = content || { min: addDays(today(), -14), max: addDays(today(), 30) };
+
+  /* 時間軸預設只蓋住資料本身的範圍，想往回看更早的日期就靠 pad 往外延伸。
+     以「整月」為單位（addMonths 會落在該月 1 號），延伸出來的區間才會對齊月份標題。
+     pad 為 0 時完全不碰 base，維持原本「剛好包住資料」的行為。 */
+  const before = Math.max(0, (pad && pad.before) || 0);
+  const after = Math.max(0, (pad && pad.after) || 0);
+  const base = {
+    min: before > 0 ? addMonths(content0.min, -before) : content0.min,
+    max: after > 0 ? endOfMonth(addMonths(content0.max, after)) : content0.max,
+  };
 
   // 日與週都對齊到整週（週一起始），月則對齊到整月
   const alignToWeek = useScale === "week" || useScale === "day";
@@ -286,7 +296,18 @@ function buildTimeline(data, scale) {
     }
   });
 
-  return { scale: useScale, start, end, totalDays, columns, groups, synthetic: !content };
+  return {
+    scale: useScale,
+    start,
+    end,
+    totalDays,
+    columns,
+    groups,
+    synthetic: !content,
+    pad: { before, after },
+    contentStart: content0.min,
+    contentEnd: content0.max,
+  };
 }
 
 // 某個日期在時間軸上的水平百分比（該日的左緣）

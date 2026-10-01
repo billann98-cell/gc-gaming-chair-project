@@ -21,6 +21,11 @@
           <button type="button" data-scale="week">週</button>
           <button type="button" data-scale="month">月</button>
         </div>
+        <div class="scale-toggle range-toggle" id="range-toggle" role="group" aria-label="時間軸顯示範圍">
+          <button type="button" id="range-earlier" data-range="earlier" title="時間軸往前延伸一個月，看更早的日期">← 更早</button>
+          <button type="button" id="range-reset" data-range="reset" hidden>重設</button>
+          <button type="button" id="range-later" data-range="later" title="時間軸往後延伸一個月，看更晚的日期">更晚 →</button>
+        </div>
         <button class="btn-secondary" id="tpl-download-btn" title="下載 Excel 範本，照著填寫後可直接匯入">📥 範本</button>
         <button class="btn-secondary" id="tpl-upload-btn" title="上傳填好的 Excel 範本，產出專案排程">📤 匯入 Excel</button>
         <input type="file" id="tpl-file-input" accept=".xlsx,.csv,.tsv,.txt" style="display:none;" />

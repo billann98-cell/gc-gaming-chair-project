@@ -14,6 +14,10 @@ let timeline = null;    // buildTimeline() 的結果，渲染與拖拉共用
 let scale = "week";
 let pxPerDay = 7.7;         // 縮放的唯一狀態；scale 由它推導
 const ZOOM_KEY = `gc-zoom:${projectId}`;
+const RANGE_KEY = `gc-range:${projectId}`;
+// 時間軸往資料範圍之外延伸幾個月（往前／往後），讓人看得到更早或更晚的日期
+let rangePad = { before: 0, after: 0 };
+const MAX_PAD = 60; // 五年，避免一直按下去把時間軸撐到無法操作
 const LABEL_W = 170;        // 左側軌道名稱欄寬，與 CSS 的 grid-template-columns 一致
 const MIN_PX = 1.5;
 const MAX_PX = 40;
@@ -76,6 +80,29 @@ function setZoom(p) {
   pxPerDay = clampPx(p);
   scale = scaleForPx(pxPerDay);
   localStorage.setItem(ZOOM_KEY, String(pxPerDay));
+}
+
+function loadRangePad() {
+  try {
+    const p = JSON.parse(localStorage.getItem(RANGE_KEY) || "null");
+    if (!p) return { before: 0, after: 0 };
+    return { before: clampPad(p.before), after: clampPad(p.after) };
+  } catch (e) {
+    return { before: 0, after: 0 };
+  }
+}
+
+function clampPad(n) {
+  return Math.min(MAX_PAD, Math.max(0, Math.round(Number(n) || 0)));
+}
+
+function setRangePad(before, after) {
+  rangePad = { before: clampPad(before), after: clampPad(after) };
+  try {
+    localStorage.setItem(RANGE_KEY, JSON.stringify(rangePad));
+  } catch (e) {
+    /* 存不了就只是這次有效，不影響顯示 */
+  }
 }
 
 /* ---------- 未儲存狀態與草稿 ---------- */
@@ -366,10 +393,14 @@ function pct(n) {
 function renderGantt() {
   // 重繪會把長條整批換掉，正在顯示的懸浮卡會指向已移除的元素
   hideHoverCard();
-  timeline = buildTimeline(data, scale);
+  timeline = buildTimeline(data, scale, rangePad);
   const tl = timeline;
 
-  $("range-label").textContent = `${formatDateShort(tl.start)} – ${formatDateShort(tl.end)}`;
+  // 跨年時一定要標年份：延伸後常見「6/29 – 6/6」這種看不出先後的區間
+  const sameYear = tl.start.getFullYear() === tl.end.getFullYear();
+  const lab = (d) => (sameYear ? formatDateShort(d) : `${d.getFullYear()}/${formatDateShort(d)}`);
+  $("range-label").textContent = `${lab(tl.start)} – ${lab(tl.end)}`;
+  updateRangeControls(tl);
 
   // 寬度直接由「每天幾像素」決定，這樣 Ctrl+滾輪的縮放才是連續的
   document.querySelector(".gantt").style.minWidth = `${Math.round(LABEL_W + tl.totalDays * pxPerDay)}px`;
@@ -2060,6 +2091,44 @@ $("scale-toggle").addEventListener("click", (e) => {
   scrollToToday();
 });
 
+/* ---------- 時間軸延伸（看更早／更晚的日期） ---------- */
+
+function updateRangeControls(tl) {
+  const reset = $("range-reset");
+  if (!reset) return;
+  const extended = tl.pad.before > 0 || tl.pad.after > 0;
+  reset.hidden = !extended;
+  reset.title = extended
+    ? `回到資料本身的範圍（${formatDateShort(tl.contentStart)} – ${formatDateShort(tl.contentEnd)}）`
+    : "";
+
+  const earlier = $("range-earlier");
+  const later = $("range-later");
+  if (earlier) earlier.disabled = tl.pad.before >= MAX_PAD;
+  if (later) later.disabled = tl.pad.after >= MAX_PAD;
+}
+
+// 延伸後把新露出來的那一段捲進畫面，否則按了鈕看起來像沒反應（只有捲軸變長）。
+function applyRangePad(before, after, lookAt) {
+  const prev = rangePad;
+  setRangePad(before, after);
+  if (rangePad.before === prev.before && rangePad.after === prev.after) return;
+  refreshView();
+
+  const scroller = $("gantt-scroll");
+  if (lookAt === "start") scroller.scrollLeft = 0;
+  else if (lookAt === "end") scroller.scrollLeft = scroller.scrollWidth;
+  else scrollToToday();
+}
+
+$("range-toggle").addEventListener("click", (e) => {
+  const b = e.target.closest("button[data-range]");
+  if (!b) return;
+  if (b.dataset.range === "earlier") applyRangePad(rangePad.before + 1, rangePad.after, "start");
+  else if (b.dataset.range === "later") applyRangePad(rangePad.before, rangePad.after + 1, "end");
+  else applyRangePad(0, 0, "today");
+});
+
 /* ---------- Ctrl + 滾輪縮放 ---------- */
 
 // 縮放時游標下的那一天必須留在原位，否則畫面會亂跳。
@@ -2200,6 +2269,7 @@ async function init() {
 
   pxPerDay = loadZoom();
   scale = scaleForPx(pxPerDay);
+  rangePad = loadRangePad();
   await loadHolidays(); // 要在第一次渲染前載入，底色帶與工作日才算得出來
   renderHolidayLegend();
   renderHolidayNotes();

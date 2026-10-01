@@ -2035,6 +2035,20 @@ footer {
   color: #fff;
 }
 
+/* 時間軸延伸：往資料範圍以外看更早／更晚的日期 */
+
+.range-toggle button:hover:not(:disabled) { color: var(--text); }
+
+.range-toggle button:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+/* 只有延伸過才會出現，所以用強調色提示「現在不是原始範圍」 */
+#range-reset {
+  color: var(--accent);
+}
+
 /* 左上角的日期範圍標籤 */
 
 .gantt-corner {
