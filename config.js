@@ -158,6 +158,36 @@ async function ghPutFile(path, jsonObj, sha, message) {
   }
 }
 
+// 刪除檔案。sha 必須是刪除當下讀到的那個，GitHub 才能擋下「刪到別人剛改過的版本」。
+async function ghDeleteFile(path, sha, message) {
+  const token = ensureToken();
+  if (!token) throw new Error("沒有提供 token，取消刪除");
+  if (!sha) throw new Error(`缺少 ${path} 的 sha，無法安全刪除`);
+
+  const res = await fetch(`${GH_API}/repos/${REPO_OWNER}/${REPO_NAME}/contents/${path}`, {
+    method: "DELETE",
+    headers: ghHeaders({ "Content-Type": "application/json" }),
+    body: JSON.stringify({ message, sha, branch: BRANCH }),
+  });
+
+  if (res.ok) return res.json();
+
+  const err = await res.json().catch(() => ({}));
+  if (res.status === 401) {
+    setToken("");
+    throw new Error("Token 無效或已過期，已清除，請重新輸入");
+  }
+  if (res.status === 403) {
+    throw new PermissionError(
+      `刪除 ${path} 被拒絕（403）。GitHub 原始訊息：${err.message || "Resource not accessible by personal access token"}`
+    );
+  }
+  if (res.status === 409 || res.status === 422) {
+    throw new ConflictError(`${path} 已被其他人更新，請重新整理後再刪除一次。`);
+  }
+  throw new Error(`刪除 ${path} 失敗 (${res.status}) ${err.message || ""}`);
+}
+
 /* 讀取 repo 裡的 JSON：先走 GitHub Pages 的靜態檔（快、不吃 API 額度），
    讀不到才改走 GitHub API。
 

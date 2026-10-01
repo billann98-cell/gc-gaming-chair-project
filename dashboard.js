@@ -183,34 +183,127 @@ function renderList(nearest) {
     el.innerHTML = `<p class="empty">還沒有專案，點下方「+ 新增專案」建立第一個。</p>`;
     return;
   }
+  // 卡片本身是連結，刪除鈕不能放在 <a> 裡面（HTML 不允許互動元素巢狀），
+  // 所以外面包一層 wrapper，按鈕與連結並排、用絕對定位疊在右上角。
+  const wrap = (p, inner) => `
+    <div class="project-card-wrap">
+      ${inner}
+      <button class="card-delete" data-del="${escapeHtml(p.id)}" data-del-name="${escapeHtml(p.name)}"
+              title="刪除專案「${escapeHtml(p.name)}」" aria-label="刪除專案 ${escapeHtml(p.name)}">🗑</button>
+    </div>`;
+
   el.innerHTML = projects
     .map((p) => {
       const entry = projectDataById[p.id] || {};
       if (entry.error) {
-        return `
-        <a class="project-card broken" href="project.html?id=${encodeURIComponent(p.id)}">
-          <div class="project-card-name">${escapeHtml(p.name)}</div>
-          <div class="project-card-desc bad">⚠ 資料讀取失敗：${escapeHtml(entry.error)}</div>
-        </a>`;
+        return wrap(
+          p,
+          `<a class="project-card broken" href="project.html?id=${encodeURIComponent(p.id)}">
+            <div class="project-card-name">${escapeHtml(p.name)}</div>
+            <div class="project-card-desc bad">⚠ 資料讀取失敗：${escapeHtml(entry.error)}</div>
+          </a>`
+        );
       }
       const agg = aggregateProgress(allTasks(entry.data));
       const r = nearest[p.id];
       const dueHtml = r
         ? `<div class="card-due ${r.severity}"><span class="dot"></span>${escapeHtml(r.taskTitle)} · ${formatDate(r.due)}</div>`
         : "";
-      return `
-      <a class="project-card" href="project.html?id=${encodeURIComponent(p.id)}">
-        <div class="project-card-name">${escapeHtml(p.name)}</div>
-        <div class="project-card-desc">${escapeHtml(p.description || "")}</div>
-        <div class="card-progress">
-          <div class="progress-bar"><div class="progress-fill" style="width:${agg.pct}%"></div></div>
-          <span class="progress-text">${agg.pct}% ・ ${agg.done}/${agg.total}</span>
-        </div>
-        ${dueHtml}
-        <div class="card-updated" data-updated="${escapeHtml(p.id)}"></div>
-      </a>`;
+      return wrap(
+        p,
+        `<a class="project-card" href="project.html?id=${encodeURIComponent(p.id)}">
+          <div class="project-card-name">${escapeHtml(p.name)}</div>
+          <div class="project-card-desc">${escapeHtml(p.description || "")}</div>
+          <div class="card-progress">
+            <div class="progress-bar"><div class="progress-fill" style="width:${agg.pct}%"></div></div>
+            <span class="progress-text">${agg.pct}% ・ ${agg.done}/${agg.total}</span>
+          </div>
+          ${dueHtml}
+          <div class="card-updated" data-updated="${escapeHtml(p.id)}"></div>
+        </a>`
+      );
     })
     .join("");
+
+  el.querySelectorAll("[data-del]").forEach((btn) =>
+    btn.addEventListener("click", (ev) => {
+      ev.preventDefault();
+      deleteProject(btn.dataset.del, btn.dataset.delName || btn.dataset.del);
+    })
+  );
+}
+
+/* ---------- 刪除專案 ---------- */
+
+function deleteSummary(id, name) {
+  const entry = projectDataById[id] || {};
+  const lines = [`確定要刪除專案「${name}」嗎？`, ""];
+  if (entry.data) {
+    const tasks = allTasks(entry.data);
+    const trackCount = (entry.data.tracks || []).length;
+    lines.push(`這個專案有 ${trackCount} 個軌道、${tasks.length} 項任務，都會一起移除。`);
+  } else if (entry.error) {
+    lines.push("（這個專案的資料目前讀取失敗，仍可以刪除清單上的紀錄。）");
+  }
+  lines.push("", "刪除後首頁與專案頁都會看不到它，但 Git 歷史仍保留內容，之後可以從 commit 還原。");
+  return lines.join("\n");
+}
+
+async function deleteProject(id, name) {
+  if (!confirm(deleteSummary(id, name))) return;
+
+  dropBanner("delete");
+  setBanner("delete", "info", `正在刪除「${escapeHtml(name)}」…`);
+
+  // 先改 index 再刪檔案：萬一第二步失敗，只會留下一個沒人指到的孤兒檔案，
+  // 比「清單指向不存在的專案」溫和得多（後者會讓首頁出現讀取失敗的壞卡片）。
+  try {
+    const idx = await ghGetFile("projects/index.json");
+    const list = (idx.json && idx.json.projects) || [];
+    if (!list.some((p) => p.id === id)) {
+      setBanner("delete", "warn", `「${escapeHtml(name)}」已經不在清單中，可能已被其他人刪除。`, [
+        { label: "重新整理", run: () => location.reload() },
+      ]);
+      return;
+    }
+    const next = { ...idx.json, projects: list.filter((p) => p.id !== id) };
+    await ghPutFile("projects/index.json", next, idx.sha, `刪除專案 ${id}：自清單移除`);
+
+    let fileNote = "";
+    try {
+      const f = await ghGetFile(`projects/${id}.json`);
+      if (f.sha) await ghDeleteFile(`projects/${id}.json`, f.sha, `刪除專案 ${id}：移除資料檔`);
+    } catch (e) {
+      // index 已經更新成功，專案不會再出現；檔案殘留只是倉庫裡多一個檔
+      fileNote = `（清單已更新，但 projects/${escapeHtml(id)}.json 未能刪除：${escapeHtml(e.message || "未知錯誤")}）`;
+    }
+
+    indexData.projects = next.projects;
+    delete projectDataById[id];
+    // 剛建立又立刻刪掉時，待確認標記若留著會讓下次載入誤判成「Pages 還沒追上」
+    const pending = readPending();
+    if (pending && pending.id === id) sessionStorage.removeItem(PENDING_KEY);
+    const reminders = computeReminders();
+    renderReminders(reminders);
+    renderList(nearestDueByProject(reminders));
+    loadCardUpdates();
+
+    setBanner("delete", fileNote ? "warn" : "info", `已刪除專案「${escapeHtml(name)}」。${fileNote}`, [
+      { label: "知道了", run: () => dropBanner("delete") },
+    ]);
+  } catch (e) {
+    if (e.isPermission) {
+      const diag = await ghDiagnoseToken();
+      setBanner("delete", "error", `刪除失敗：${escapeHtml(e.message)}<br>${ghTokenFixHtml(diag)}`, [
+        { label: "關閉", run: () => dropBanner("delete") },
+      ]);
+      return;
+    }
+    setBanner("delete", "error", `刪除「${escapeHtml(name)}」失敗：${escapeHtml(e.message || String(e))}`, [
+      { label: "重新整理", run: () => location.reload() },
+      { label: "關閉", run: () => dropBanner("delete") },
+    ]);
+  }
 }
 
 // G2：每張卡片顯示最後更新者與時間

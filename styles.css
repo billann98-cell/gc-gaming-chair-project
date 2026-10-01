@@ -563,8 +563,16 @@ footer {
   margin-bottom: 20px;
 }
 
+/* 刪除鈕不能放進 <a> 裡（HTML 不允許），所以卡片外再包一層當定位基準。
+   wrapper 取代卡片成為 grid item，因此高度要由它往下傳，卡片才會等高。 */
+.project-card-wrap {
+  position: relative;
+  height: 100%;
+}
+
 .project-card {
   display: block;
+  height: 100%;
   background: var(--card-bg);
   border: 1px solid var(--border);
   border-radius: 10px;
@@ -573,9 +581,43 @@ footer {
   color: var(--text);
 }
 
+.card-delete {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  line-height: 1;
+  font-size: 0.85rem;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  background: var(--card-bg);
+  color: var(--muted);
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.12s ease, color 0.12s ease, border-color 0.12s ease;
+}
+
+.project-card-wrap:hover .card-delete,
+.card-delete:focus-visible {
+  opacity: 1;
+}
+
+.card-delete:hover {
+  color: var(--danger);
+  border-color: var(--danger);
+}
+
+/* 觸控裝置沒有 hover，按鈕必須一直看得見 */
+@media (hover: none) {
+  .card-delete { opacity: 1; }
+}
+
 .project-card-name {
   font-weight: 700;
   margin-bottom: 4px;
+  padding-right: 28px; /* 讓出右上角刪除鈕的位置 */
 }
 
 .project-card-desc {
@@ -2133,6 +2175,8 @@ footer {
   .project-card {
     break-inside: avoid;
   }
+
+  .card-delete { display: none; }
 
   .task-bar {
     box-shadow: none;
