@@ -1,6 +1,19 @@
 {
   "projects": [
-    { "id": "sh400", "name": "SH400", "description": "腳踏外觀提案 → MP 驗貨與出貨（2026/08 – 2027/04）" },
-    { "id": "demo-hardware", "name": "範例硬體專案", "description": "Award → 1st lot ETD 產品開發排程範例" }
+    {
+      "id": "sh400",
+      "name": "SH400",
+      "description": "腳踏外觀提案 → MP 驗貨與出貨（2026/08 – 2027/04）"
+    },
+    {
+      "id": "demo-hardware",
+      "name": "範例硬體專案",
+      "description": "Award → 1st lot ETD 產品開發排程範例"
+    },
+    {
+      "id": "sh400-腳蹬-椅座",
+      "name": "SH400 腳蹬+椅座",
+      "description": ""
+    }
   ]
 }
