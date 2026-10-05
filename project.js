@@ -1052,9 +1052,23 @@ function renderEditPanel() {
         })
         .join("");
 
+      const colorOptions = TRACK_COLORS.map(
+        (c) => `<option value="${c}" ${c === track.color ? "selected" : ""}>${TRACK_COLOR_LABEL[c] || c}</option>`
+      ).join("");
+
       return `
       <div class="track-edit-block">
-        <div class="track-edit-title" data-color="${track.color}">${escapeHtml(track.label)}</div>
+        <div class="track-edit-head" data-color="${track.color}">
+          <input type="text" class="track-label-input" data-kind="track-label" data-track="${ti}"
+                 value="${escapeHtml(track.label)}" placeholder="分類名稱" aria-label="分類名稱" />
+          <select data-kind="track-color" data-track="${ti}" aria-label="分類顏色">${colorOptions}</select>
+          <span class="track-edit-count">${track.tasks.length} 項任務</span>
+          <button class="btn-icon" data-kind="track-up" data-track="${ti}" ${ti === 0 ? "disabled" : ""}
+                  title="往上移" aria-label="把分類往上移">↑</button>
+          <button class="btn-icon" data-kind="track-down" data-track="${ti}" ${ti === data.tracks.length - 1 ? "disabled" : ""}
+                  title="往下移" aria-label="把分類往下移">↓</button>
+          <button class="btn-remove" data-kind="track-remove" data-track="${ti}">刪除分類</button>
+        </div>
         ${rows}
         <button class="btn-secondary btn-add-task" data-kind="task-add" data-track="${ti}">+ 新增任務</button>
       </div>`;
@@ -1109,15 +1123,39 @@ function renderEditPanel() {
 
     <section class="edit-section">
       <div class="section-head">
-        <h3>任務</h3>
-        <button class="btn-secondary btn-sm" data-kind="import-open">📋 從 Excel 貼上匯入</button>
+        <h3>分類與任務</h3>
+        <span class="section-head-actions">
+          <button class="btn-secondary btn-sm" data-kind="track-add">＋ 新增分類</button>
+          <button class="btn-secondary btn-sm" data-kind="import-open">📋 從 Excel 貼上匯入</button>
+        </span>
       </div>
+      <p class="hint">分類就是甘特圖左側的那幾條（例如「腳蹬」「成椅」）。改名稱、換顏色、調順序、刪除都在每一塊的標題列。</p>
       <p class="hint">在甘特圖上可以直接拖曳長條移動日期，拖兩端可以改工期，以天為單位。</p>
-      ${tracksHtml}
+      ${tracksHtml || '<p class="hint">這個專案還沒有分類，點「＋ 新增分類」建立第一條。</p>'}
     </section>
   `;
 
   bindEditPanel(panel);
+}
+
+/* key 只是資料欄位，畫面不靠它，但不能重複（匯出的 Excel 與舊版遷移都讀它）。
+   用「現有最大編號 + 1」而不是 length + 1，刪掉中間一條再新增才不會撞號。 */
+function nextTrackKey() {
+  let max = 0;
+  (data.tracks || []).forEach((t) => {
+    const m = /^track-(\d+)$/.exec(t.key || "");
+    if (m) max = Math.max(max, +m[1]);
+  });
+  return `track-${max + 1}`;
+}
+
+// 重複的分類名稱會讓 Excel 匯入對應錯軌道，所以預設名稱就先避開
+function uniqueTrackLabel(base) {
+  const used = new Set((data.tracks || []).map((t) => (t.label || "").trim()));
+  if (!used.has(base)) return base;
+  for (let i = 2; ; i++) {
+    if (!used.has(`${base} ${i}`)) return `${base} ${i}`;
+  }
 }
 
 function bindEditPanel(panel) {
@@ -1161,6 +1199,76 @@ function bindEditPanel(panel) {
     markDirty();
     refreshView();
     renderEditPanel();
+  });
+
+  /* 分類（軌道） */
+  panel.querySelectorAll("[data-kind='track-label']").forEach((el) =>
+    el.addEventListener("input", (e) => {
+      T(e).label = e.target.value;
+      markDirty();
+      refreshView();
+      // 不重繪整個面板，否則每打一個字就失去焦點。只把受影響的下拉選單補上。
+      const opt = panel.querySelector(`[data-kind='bulk-scope'] option[value='track:${e.target.dataset.track}']`);
+      if (opt) opt.textContent = e.target.value;
+    })
+  );
+  panel.querySelectorAll("[data-kind='track-color']").forEach((el) =>
+    el.addEventListener("change", (e) => {
+      T(e).color = e.target.value;
+      e.target.closest(".track-edit-head").dataset.color = e.target.value;
+      markDirty();
+      refreshView();
+    })
+  );
+  panel.querySelectorAll("[data-kind='track-remove']").forEach((el) =>
+    el.addEventListener("click", (e) => {
+      const ti = +e.target.dataset.track;
+      const track = data.tracks[ti];
+      const n = (track.tasks || []).length;
+      const warn = n
+        ? `分類「${track.label || "未命名"}」底下的 ${n} 項任務會一起刪除。`
+        : `分類「${track.label || "未命名"}」底下沒有任務。`;
+      if (!confirm(`${warn}\n\n確定要刪除嗎？（按「儲存到 GitHub」之前都還可以用「取消編輯」還原）`)) return;
+      data.tracks.splice(ti, 1);
+      markDirty();
+      refreshView();
+      renderEditPanel();
+    })
+  );
+  const moveTrack = (from, to) => {
+    if (to < 0 || to >= data.tracks.length) return;
+    const [t] = data.tracks.splice(from, 1);
+    data.tracks.splice(to, 0, t);
+    markDirty();
+    refreshView();
+    renderEditPanel();
+    // 重繪後焦點會掉回 body，把它還給剛剛按的那顆按鈕，才能連續按
+    const btn = panel.querySelector(`[data-kind='track-${to > from ? "down" : "up"}'][data-track='${to}']`);
+    if (btn && !btn.disabled) btn.focus();
+  };
+  panel.querySelectorAll("[data-kind='track-up']").forEach((el) =>
+    el.addEventListener("click", (e) => moveTrack(+e.target.dataset.track, +e.target.dataset.track - 1))
+  );
+  panel.querySelectorAll("[data-kind='track-down']").forEach((el) =>
+    el.addEventListener("click", (e) => moveTrack(+e.target.dataset.track, +e.target.dataset.track + 1))
+  );
+  panel.querySelector("[data-kind='track-add']").addEventListener("click", () => {
+    data.tracks.push({
+      key: nextTrackKey(),
+      label: uniqueTrackLabel("新分類"),
+      color: TRACK_COLORS[data.tracks.length % TRACK_COLORS.length],
+      tasks: [],
+    });
+    markDirty();
+    refreshView();
+    renderEditPanel();
+    // 新分類一定要馬上改名，直接把游標放進去並選取預設文字
+    const input = panel.querySelector(`[data-kind='track-label'][data-track='${data.tracks.length - 1}']`);
+    if (input) {
+      input.scrollIntoView({ block: "center" });
+      input.focus();
+      input.select();
+    }
   });
 
   /* 任務文字欄位 */

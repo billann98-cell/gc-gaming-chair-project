@@ -4,6 +4,7 @@
 
 const SCHEMA_VERSION = 3;
 const TRACK_COLORS = ["orange", "slate", "rust", "olive"];
+const TRACK_COLOR_LABEL = { orange: "橘", slate: "藍灰", rust: "磚紅", olive: "橄欖綠" };
 const STATUSES = ["upcoming", "in-progress", "done"];
 const STATUS_LABEL = { upcoming: "待辦", "in-progress": "進行中", done: "已完成" };
 const SCALES = ["day", "week", "month"];
@@ -482,6 +483,16 @@ function validateProject(data) {
   (data.phaseMarkers || []).forEach((m, i) => {
     if (!m.label || !m.label.trim()) problems.push(`第 ${i + 1} 個里程碑沒有名稱`);
     if (!parseISO(m.date)) problems.push(`里程碑「${m.label || i + 1}」需要一個有效日期`);
+  });
+
+  /* 分類名稱是 Excel 匯入唯一的對應依據（匯入時用 label 找軌道），
+     空白或重複會讓匯入靜靜地全部塞進第一條，所以在存檔前就擋下來。 */
+  const seenLabels = new Set();
+  (data.tracks || []).forEach((track, i) => {
+    const label = (track.label || "").trim();
+    if (!label) problems.push(`第 ${i + 1} 個分類沒有名稱`);
+    else if (seenLabels.has(label)) problems.push(`有兩個分類都叫「${label}」，請改成不同名稱`);
+    else seenLabels.add(label);
   });
 
   (data.tracks || []).forEach((track) => {

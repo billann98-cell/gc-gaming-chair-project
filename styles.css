@@ -808,6 +808,83 @@ footer {
 .track-edit-title[data-color="rust"] { color: var(--rust); }
 .track-edit-title[data-color="olive"] { color: var(--olive); }
 
+/* 分類標題列：名稱可直接改，右邊是顏色、排序與刪除 */
+
+.track-edit-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 8px;
+  flex-wrap: wrap;
+}
+
+/* 左邊那條色塊，讓分類顏色在編輯面板裡也看得出來 */
+.track-edit-head::before {
+  content: "";
+  width: 4px;
+  align-self: stretch;
+  min-height: 24px;
+  border-radius: 2px;
+  background: var(--track-ink, var(--border));
+}
+
+.track-edit-head[data-color="orange"] { --track-ink: var(--orange); }
+.track-edit-head[data-color="slate"] { --track-ink: var(--slate); }
+.track-edit-head[data-color="rust"] { --track-ink: var(--rust); }
+.track-edit-head[data-color="olive"] { --track-ink: var(--olive); }
+
+.track-label-input {
+  flex: 1 1 140px;
+  min-width: 0;
+  padding: 6px 8px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--track-ink, var(--text));
+  font-weight: 700;
+  font-size: 0.85rem;
+}
+
+.track-edit-head select {
+  padding: 6px 8px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--text);
+  font-size: 0.78rem;
+}
+
+.track-edit-count {
+  font-size: 0.72rem;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+.btn-icon {
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  line-height: 1;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--muted);
+  cursor: pointer;
+}
+
+.btn-icon:hover:not(:disabled) { color: var(--text); }
+
+.btn-icon:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.section-head-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
 .task-edit-row {
   display: flex;
   align-items: center;
