@@ -1,0 +1,561 @@
+{
+  "schemaVersion": 3,
+  "project": {
+    "name": "SH400 腳蹬+椅座",
+    "description": "腳蹬與成椅兩條時程（2026/09 – 2027/06）／來源：20260916_SH400Timeline.xlsx 工作表 SH400"
+  },
+  "phaseMarkers": [
+    {
+      "label": "ID FIX",
+      "date": "2026-09-30",
+      "highlight": true
+    },
+    {
+      "label": "T0 討論／修模",
+      "date": "2027-02-22",
+      "highlight": true
+    },
+    {
+      "label": "T1 (DVT)",
+      "date": "2027-03-28",
+      "highlight": false
+    },
+    {
+      "label": "金樣簽樣",
+      "date": "2027-05-18",
+      "highlight": false
+    },
+    {
+      "label": "MP 生產",
+      "date": "2027-06-08",
+      "highlight": true
+    },
+    {
+      "label": "出貨",
+      "date": "2027-06-20",
+      "highlight": true
+    }
+  ],
+  "tracks": [
+    {
+      "key": "footrest",
+      "label": "腳蹬",
+      "color": "orange",
+      "tasks": [
+        {
+          "title": "外觀提案&討論",
+          "start": "2026-09-14",
+          "end": "2026-09-29",
+          "status": "done",
+          "owner": "ASUS Wayne",
+          "note": "",
+          "links": [],
+          "baseline": null,
+          "subtasks": []
+        },
+        {
+          "title": "ID FIX",
+          "start": "2026-09-30",
+          "end": "2026-09-30",
+          "status": "done",
+          "owner": "ASUS",
+          "note": "原表以強調色標示的決策點。",
+          "links": [],
+          "baseline": null,
+          "subtasks": []
+        },
+        {
+          "title": "3D圖紙製作",
+          "start": "2026-10-01",
+          "end": "2026-10-04",
+          "status": "done",
+          "owner": "Wayne",
+          "note": "",
+          "links": [],
+          "baseline": null,
+          "subtasks": []
+        },
+        {
+          "title": "3D圖紙討論與修改",
+          "start": "2026-10-05",
+          "end": "2026-10-08",
+          "status": "in-progress",
+          "owner": "ASUS Wayne",
+          "note": "",
+          "links": [],
+          "baseline": null,
+          "subtasks": []
+        },
+        {
+          "title": "3D結構製作",
+          "start": "2026-10-09",
+          "end": "2026-10-15",
+          "status": "upcoming",
+          "owner": "Wayne",
+          "note": "",
+          "links": [],
+          "baseline": null,
+          "subtasks": []
+        },
+        {
+          "title": "3D結構討論與修改",
+          "start": "2026-10-16",
+          "end": "2026-10-16",
+          "status": "upcoming",
+          "owner": "ASUS Wayne",
+          "note": "原表只填 10/16 一格，旁邊另有手寫註記「10/20 fix」，實際結束日請確認。",
+          "links": [],
+          "baseline": null,
+          "subtasks": []
+        },
+        {
+          "title": "模型製作-1",
+          "start": "2026-10-21",
+          "end": "2026-11-03",
+          "status": "upcoming",
+          "owner": "Angel",
+          "note": "",
+          "links": [],
+          "baseline": null,
+          "subtasks": []
+        },
+        {
+          "title": "手板討論-1",
+          "start": "2026-11-04",
+          "end": "2026-11-13",
+          "status": "upcoming",
+          "owner": "ASUS BK",
+          "note": "",
+          "links": [],
+          "baseline": null,
+          "subtasks": []
+        },
+        {
+          "title": "結構修改-1",
+          "start": "2026-11-14",
+          "end": "2026-11-18",
+          "status": "upcoming",
+          "owner": "Wayne",
+          "note": "",
+          "links": [],
+          "baseline": null,
+          "subtasks": []
+        },
+        {
+          "title": "模型製作-2",
+          "start": "2026-11-19",
+          "end": "2026-11-29",
+          "status": "upcoming",
+          "owner": "Angel",
+          "note": "",
+          "links": [],
+          "baseline": null,
+          "subtasks": []
+        },
+        {
+          "title": "手板討論-2",
+          "start": "2026-11-30",
+          "end": "2026-12-03",
+          "status": "upcoming",
+          "owner": "ASUS BK",
+          "note": "",
+          "links": [],
+          "baseline": null,
+          "subtasks": []
+        },
+        {
+          "title": "結構修改-2",
+          "start": "2026-12-04",
+          "end": "2026-12-09",
+          "status": "upcoming",
+          "owner": "Wayne",
+          "note": "",
+          "links": [],
+          "baseline": null,
+          "subtasks": []
+        },
+        {
+          "title": "DFM",
+          "start": "2026-12-10",
+          "end": "2026-12-20",
+          "status": "upcoming",
+          "owner": "WJ",
+          "note": "原表「模具」小節。",
+          "links": [],
+          "baseline": null,
+          "subtasks": []
+        },
+        {
+          "title": "模具製作",
+          "start": "2026-12-21",
+          "end": "2027-01-31",
+          "status": "upcoming",
+          "owner": "WJ",
+          "note": "原表只填起日，結束日取該週週日。",
+          "links": [],
+          "baseline": null,
+          "subtasks": []
+        },
+        {
+          "title": "中國新年",
+          "start": "2027-01-25",
+          "end": "2027-02-21",
+          "status": "upcoming",
+          "owner": "",
+          "note": "原表以黃色標示的停工區間（四週），非實際工作項目。",
+          "links": [],
+          "baseline": null,
+          "subtasks": []
+        },
+        {
+          "title": "T0討論、修模(power user)",
+          "start": "2027-02-22",
+          "end": "2027-03-07",
+          "status": "upcoming",
+          "owner": "ASUS WJ/BK",
+          "note": "原表註記「開工即可開始」。",
+          "links": [],
+          "baseline": null,
+          "subtasks": []
+        },
+        {
+          "title": "咬花",
+          "start": "2027-03-08",
+          "end": "2027-03-17",
+          "status": "upcoming",
+          "owner": "WJ",
+          "note": "",
+          "links": [],
+          "baseline": null,
+          "subtasks": []
+        },
+        {
+          "title": "生產T1 (DVT)",
+          "start": "2027-03-18",
+          "end": "2027-03-28",
+          "status": "upcoming",
+          "owner": "WJ",
+          "note": "",
+          "links": [],
+          "baseline": null,
+          "subtasks": []
+        },
+        {
+          "title": "T1驗證 / 產品測試 / ASUS & DVT驗證",
+          "start": "2027-03-29",
+          "end": "2027-04-27",
+          "status": "upcoming",
+          "owner": "ASUS WJ/BK",
+          "note": "",
+          "links": [],
+          "baseline": null,
+          "subtasks": []
+        },
+        {
+          "title": "小試產PVT 與 金樣生產",
+          "start": "2027-04-28",
+          "end": "2027-05-14",
+          "status": "upcoming",
+          "owner": "WJ",
+          "note": "",
+          "links": [],
+          "baseline": null,
+          "subtasks": []
+        },
+        {
+          "title": "金樣會議與簽樣",
+          "start": "2027-05-15",
+          "end": "2027-05-18",
+          "status": "upcoming",
+          "owner": "ASUS BK",
+          "note": "",
+          "links": [],
+          "baseline": null,
+          "subtasks": []
+        },
+        {
+          "title": "MP備料",
+          "start": "2027-05-19",
+          "end": "2027-06-07",
+          "status": "upcoming",
+          "owner": "WJ",
+          "note": "",
+          "links": [],
+          "baseline": null,
+          "subtasks": []
+        },
+        {
+          "title": "MP生產",
+          "start": "2027-06-08",
+          "end": "2027-06-16",
+          "status": "upcoming",
+          "owner": "WJ",
+          "note": "",
+          "links": [],
+          "baseline": null,
+          "subtasks": []
+        },
+        {
+          "title": "MP驗貨與出貨",
+          "start": "2027-06-17",
+          "end": "2027-06-20",
+          "status": "upcoming",
+          "owner": "ASUS WJ/BK",
+          "note": "",
+          "links": [],
+          "baseline": null,
+          "subtasks": []
+        }
+      ]
+    },
+    {
+      "key": "chair",
+      "label": "成椅",
+      "color": "slate",
+      "tasks": [
+        {
+          "title": "泡棉｜泡棉模型製作",
+          "start": "2026-09-16",
+          "end": "2026-09-28",
+          "status": "done",
+          "owner": "Angel",
+          "note": "",
+          "links": [],
+          "baseline": null,
+          "subtasks": []
+        },
+        {
+          "title": "泡棉｜泡棉模型寄送",
+          "start": "2026-09-28",
+          "end": "2026-10-01",
+          "status": "done",
+          "owner": "Angel",
+          "note": "",
+          "links": [],
+          "baseline": null,
+          "subtasks": []
+        },
+        {
+          "title": "泡棉｜模型討論與修改",
+          "start": "2026-10-01",
+          "end": "2026-10-18",
+          "status": "in-progress",
+          "owner": "ASUS Wayne",
+          "note": "",
+          "links": [],
+          "baseline": null,
+          "subtasks": []
+        },
+        {
+          "title": "泡棉｜泡棉模具製作",
+          "start": "2026-10-19",
+          "end": "2026-11-01",
+          "status": "upcoming",
+          "owner": "WJ",
+          "note": "",
+          "links": [],
+          "baseline": null,
+          "subtasks": []
+        },
+        {
+          "title": "扶手PU｜扶手PU墊圖紙修改",
+          "start": "2026-09-14",
+          "end": "2026-09-20",
+          "status": "done",
+          "owner": "Angel",
+          "note": "",
+          "links": [],
+          "baseline": null,
+          "subtasks": []
+        },
+        {
+          "title": "扶手PU｜圖紙討論與確認",
+          "start": "2026-09-21",
+          "end": "2026-10-11",
+          "status": "in-progress",
+          "owner": "Simon",
+          "note": "",
+          "links": [],
+          "baseline": null,
+          "subtasks": []
+        },
+        {
+          "title": "扶手PU｜不同軟硬度打樣",
+          "start": "2026-09-14",
+          "end": "2026-10-04",
+          "status": "done",
+          "owner": "Angel",
+          "note": "原表只有整格著色、沒有填日期，起訖取該週週一與週日。",
+          "links": [],
+          "baseline": null,
+          "subtasks": []
+        },
+        {
+          "title": "扶手PU｜修改模具或開模",
+          "start": "2026-10-12",
+          "end": "2026-11-15",
+          "status": "upcoming",
+          "owner": "WJ",
+          "note": "原表只有整格著色、沒有填日期，起訖取該週週一與週日。",
+          "links": [],
+          "baseline": null,
+          "subtasks": []
+        },
+        {
+          "title": "頭枕支架｜外觀提案&討論",
+          "start": "2026-09-17",
+          "end": "2026-10-04",
+          "status": "done",
+          "owner": "ASUS Wayne",
+          "note": "",
+          "links": [],
+          "baseline": null,
+          "subtasks": []
+        },
+        {
+          "title": "頭枕支架｜3D圖紙製作與討論",
+          "start": "2026-10-05",
+          "end": "2026-10-11",
+          "status": "in-progress",
+          "owner": "ID Wayne",
+          "note": "",
+          "links": [],
+          "baseline": null,
+          "subtasks": []
+        },
+        {
+          "title": "頭枕支架｜3D結構製作",
+          "start": "2026-10-17",
+          "end": "2026-10-17",
+          "status": "upcoming",
+          "owner": "Simon WJ",
+          "note": "原表只填 10/17 一格。",
+          "links": [],
+          "baseline": null,
+          "subtasks": []
+        },
+        {
+          "title": "頭枕支架｜3D圖紙討論",
+          "start": "2026-10-19",
+          "end": "2026-10-25",
+          "status": "upcoming",
+          "owner": "Simon Wayne",
+          "note": "原表只有整格著色、沒有填日期，起訖取該週週一與週日。",
+          "links": [],
+          "baseline": null,
+          "subtasks": []
+        },
+        {
+          "title": "頭枕支架｜模型製作-1",
+          "start": "2026-10-26",
+          "end": "2026-11-08",
+          "status": "upcoming",
+          "owner": "WJ",
+          "note": "原表只有整格著色、沒有填日期，起訖取該週週一與週日。原表此列與後面一列同名「模型製作」，為方便辨識加上編號。",
+          "links": [],
+          "baseline": null,
+          "subtasks": []
+        },
+        {
+          "title": "頭枕支架｜討論與修改圖紙",
+          "start": "2026-11-09",
+          "end": "2026-11-22",
+          "status": "upcoming",
+          "owner": "",
+          "note": "原表只有整格著色、沒有填日期，起訖取該週週一與週日。",
+          "links": [],
+          "baseline": null,
+          "subtasks": []
+        },
+        {
+          "title": "頭枕支架｜模型製作-2",
+          "start": "2026-11-23",
+          "end": "2026-11-29",
+          "status": "upcoming",
+          "owner": "WJ",
+          "note": "原表只有整格著色、沒有填日期，起訖取該週週一與週日。原表此列與前面一列同名「模型製作」，為方便辨識加上編號。",
+          "links": [],
+          "baseline": null,
+          "subtasks": []
+        },
+        {
+          "title": "頭枕支架｜修改圖紙",
+          "start": "2026-11-30",
+          "end": "2026-12-06",
+          "status": "upcoming",
+          "owner": "",
+          "note": "原表只有整格著色、沒有填日期，起訖取該週週一與週日。",
+          "links": [],
+          "baseline": null,
+          "subtasks": []
+        },
+        {
+          "title": "頭枕支架｜修模與模具啟動",
+          "start": "2026-12-07",
+          "end": "2026-12-13",
+          "status": "upcoming",
+          "owner": "",
+          "note": "原表以強調色標示的決策點。只有整格著色、沒有填日期，起訖取該週週一與週日。",
+          "links": [],
+          "baseline": null,
+          "subtasks": []
+        },
+        {
+          "title": "頭枕支架｜DFM",
+          "start": "2026-12-14",
+          "end": "2026-12-27",
+          "status": "upcoming",
+          "owner": "",
+          "note": "原表只有整格著色、沒有填日期，起訖取該週週一與週日。",
+          "links": [],
+          "baseline": null,
+          "subtasks": []
+        },
+        {
+          "title": "頭枕支架｜模具製作",
+          "start": "2026-12-28",
+          "end": "2027-01-24",
+          "status": "upcoming",
+          "owner": "",
+          "note": "原表只有整格著色、沒有填日期，起訖取該週週一與週日。",
+          "links": [],
+          "baseline": null,
+          "subtasks": []
+        },
+        {
+          "title": "頭枕支架｜T0與華碩討論驗證",
+          "start": "2027-01-25",
+          "end": "2027-03-07",
+          "status": "upcoming",
+          "owner": "",
+          "note": "原表只有整格著色、沒有填日期，起訖取該週週一與週日。與腳蹬的「中國新年」停工區間重疊，需確認。",
+          "links": [],
+          "baseline": null,
+          "subtasks": []
+        },
+        {
+          "title": "BIFMA测试",
+          "start": "2027-02-22",
+          "end": "2027-03-21",
+          "status": "upcoming",
+          "owner": "",
+          "note": "原表只有整格著色、沒有填日期，起訖取該週週一與週日。",
+          "links": [],
+          "baseline": null,
+          "subtasks": []
+        },
+        {
+          "title": "EN1335测试",
+          "start": "2027-02-22",
+          "end": "2027-03-21",
+          "status": "upcoming",
+          "owner": "",
+          "note": "原表只有整格著色、沒有填日期，起訖取該週週一與週日。",
+          "links": [],
+          "baseline": null,
+          "subtasks": []
+        }
+      ]
+    }
+  ]
+}
