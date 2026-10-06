@@ -860,6 +860,17 @@ footer {
   white-space: nowrap;
 }
 
+/* 收合箭頭：比上下移按鈕醒目一點，它是這一列最常按的 */
+.track-toggle {
+  color: var(--text);
+  font-size: 0.7rem;
+}
+
+/* 收合起來時標題列是整塊唯一剩下的東西，底線讓它仍然像一塊 */
+.track-edit-head:has(+ .track-edit-body[hidden]) {
+  margin-bottom: 0;
+}
+
 .btn-icon {
   width: 28px;
   height: 28px;

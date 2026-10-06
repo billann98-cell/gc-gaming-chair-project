@@ -15,6 +15,10 @@ let scale = "week";
 let pxPerDay = 7.7;         // 縮放的唯一狀態；scale 由它推導
 const ZOOM_KEY = `gc-zoom:${projectId}`;
 const RANGE_KEY = `gc-range:${projectId}`;
+const COLLAPSE_KEY = `gc-collapsed:${projectId}`;
+/* 編輯面板裡收合起來的分類。用 track.key 記而不是索引，排序或刪除之後才不會
+   收合到別條去；存進 localStorage，重新整理後維持上次看的樣子。 */
+let collapsedTracks = new Set();
 // 時間軸往資料範圍之外延伸幾個月（往前／往後），讓人看得到更早或更晚的日期
 let rangePad = { before: 0, after: 0 };
 const MAX_PAD = 60; // 五年，避免一直按下去把時間軸撐到無法操作
@@ -89,6 +93,30 @@ function loadRangePad() {
     return { before: clampPad(p.before), after: clampPad(p.after) };
   } catch (e) {
     return { before: 0, after: 0 };
+  }
+}
+
+function loadCollapsed() {
+  try {
+    const raw = JSON.parse(localStorage.getItem(COLLAPSE_KEY) || "[]");
+    return new Set(Array.isArray(raw) ? raw : []);
+  } catch (e) {
+    return new Set();
+  }
+}
+
+function isCollapsed(track) {
+  return !!track && collapsedTracks.has(track.key);
+}
+
+function setCollapsed(track, on) {
+  if (!track) return;
+  if (on) collapsedTracks.add(track.key);
+  else collapsedTracks.delete(track.key);
+  try {
+    localStorage.setItem(COLLAPSE_KEY, JSON.stringify([...collapsedTracks]));
+  } catch (e) {
+    /* 存不了就只是這次有效 */
   }
 }
 
@@ -823,6 +851,12 @@ function attachJumpToEditor(bar, ti, tj) {
 async function jumpToTaskEditor(ti, tj) {
   if (!editMode) await enterEdit(); // 順便省掉先按「編輯」的步驟
 
+  // 分類收合著的話那一列是 hidden，scrollIntoView 與 focus 都會失效，所以先展開
+  if (isCollapsed(data.tracks[ti])) {
+    setCollapsed(data.tracks[ti], false);
+    renderEditPanel();
+  }
+
   const item = document.querySelector(`[data-task-item="${ti}-${tj}"]`);
   if (!item) return;
 
@@ -1056,9 +1090,14 @@ function renderEditPanel() {
         (c) => `<option value="${c}" ${c === track.color ? "selected" : ""}>${TRACK_COLOR_LABEL[c] || c}</option>`
       ).join("");
 
+      const collapsed = isCollapsed(track);
+
       return `
       <div class="track-edit-block">
         <div class="track-edit-head" data-color="${track.color}">
+          <button class="btn-icon track-toggle" data-kind="track-toggle" data-track="${ti}"
+                  aria-expanded="${!collapsed}" aria-controls="track-body-${ti}"
+                  title="${collapsed ? "展開" : "收合"}分類「${escapeHtml(track.label)}」">${collapsed ? "▸" : "▾"}</button>
           <input type="text" class="track-label-input" data-kind="track-label" data-track="${ti}"
                  value="${escapeHtml(track.label)}" placeholder="分類名稱" aria-label="分類名稱" />
           <select data-kind="track-color" data-track="${ti}" aria-label="分類顏色">${colorOptions}</select>
@@ -1069,11 +1108,15 @@ function renderEditPanel() {
                   title="往下移" aria-label="把分類往下移">↓</button>
           <button class="btn-remove" data-kind="track-remove" data-track="${ti}">刪除分類</button>
         </div>
-        ${rows}
-        <button class="btn-secondary btn-add-task" data-kind="task-add" data-track="${ti}">+ 新增任務</button>
+        <div class="track-edit-body" id="track-body-${ti}" ${collapsed ? "hidden" : ""}>
+          ${rows}
+          <button class="btn-secondary btn-add-task" data-kind="task-add" data-track="${ti}">+ 新增任務</button>
+        </div>
       </div>`;
     })
     .join("");
+
+  const anyExpanded = data.tracks.some((t) => !isCollapsed(t));
 
   panel.innerHTML = `
     <section class="edit-section">
@@ -1125,11 +1168,12 @@ function renderEditPanel() {
       <div class="section-head">
         <h3>分類與任務</h3>
         <span class="section-head-actions">
+          ${data.tracks.length ? `<button class="btn-secondary btn-sm" data-kind="track-collapse-all">${anyExpanded ? "全部收合" : "全部展開"}</button>` : ""}
           <button class="btn-secondary btn-sm" data-kind="track-add">＋ 新增分類</button>
           <button class="btn-secondary btn-sm" data-kind="import-open">📋 從 Excel 貼上匯入</button>
         </span>
       </div>
-      <p class="hint">分類就是甘特圖左側的那幾條（例如「腳蹬」「成椅」）。改名稱、換顏色、調順序、刪除都在每一塊的標題列。</p>
+      <p class="hint">分類就是甘特圖左側的那幾條（例如「腳蹬」「成椅」）。改名稱、換顏色、調順序、刪除都在每一塊的標題列，點最左邊的箭頭可以把整塊收合起來。</p>
       <p class="hint">在甘特圖上可以直接拖曳長條移動日期，拖兩端可以改工期，以天為單位。</p>
       ${tracksHtml || '<p class="hint">這個專案還沒有分類，點「＋ 新增分類」建立第一條。</p>'}
     </section>
@@ -1202,6 +1246,32 @@ function bindEditPanel(panel) {
   });
 
   /* 分類（軌道） */
+
+  // 收合只動畫面、不動資料，所以直接改 DOM 就好；重繪整個面板會讓捲動位置跳掉
+  panel.querySelectorAll("[data-kind='track-toggle']").forEach((el) =>
+    el.addEventListener("click", (e) => {
+      const btn = e.currentTarget;
+      const track = data.tracks[+btn.dataset.track];
+      const next = !isCollapsed(track);
+      setCollapsed(track, next);
+      const body = panel.querySelector(`#track-body-${btn.dataset.track}`);
+      if (body) body.hidden = next;
+      btn.textContent = next ? "▸" : "▾";
+      btn.setAttribute("aria-expanded", String(!next));
+      btn.title = `${next ? "展開" : "收合"}分類「${track.label}」`;
+      const all = panel.querySelector("[data-kind='track-collapse-all']");
+      if (all) all.textContent = data.tracks.some((t) => !isCollapsed(t)) ? "全部收合" : "全部展開";
+    })
+  );
+  const collapseAllBtn = panel.querySelector("[data-kind='track-collapse-all']");
+  if (collapseAllBtn) {
+    collapseAllBtn.addEventListener("click", () => {
+      const collapse = data.tracks.some((t) => !isCollapsed(t));
+      data.tracks.forEach((t) => setCollapsed(t, collapse));
+      renderEditPanel();
+    });
+  }
+
   panel.querySelectorAll("[data-kind='track-label']").forEach((el) =>
     el.addEventListener("input", (e) => {
       T(e).label = e.target.value;
@@ -1229,6 +1299,7 @@ function bindEditPanel(panel) {
         ? `分類「${track.label || "未命名"}」底下的 ${n} 項任務會一起刪除。`
         : `分類「${track.label || "未命名"}」底下沒有任務。`;
       if (!confirm(`${warn}\n\n確定要刪除嗎？（按「儲存到 GitHub」之前都還可以用「取消編輯」還原）`)) return;
+      setCollapsed(track, false); // 別把收合狀態留給之後重用同一個 key 的新分類
       data.tracks.splice(ti, 1);
       markDirty();
       refreshView();
@@ -1253,12 +1324,14 @@ function bindEditPanel(panel) {
     el.addEventListener("click", (e) => moveTrack(+e.target.dataset.track, +e.target.dataset.track + 1))
   );
   panel.querySelector("[data-kind='track-add']").addEventListener("click", () => {
-    data.tracks.push({
+    const track = {
       key: nextTrackKey(),
       label: uniqueTrackLabel("新分類"),
       color: TRACK_COLORS[data.tracks.length % TRACK_COLORS.length],
       tasks: [],
-    });
+    };
+    data.tracks.push(track);
+    setCollapsed(track, false); // 剛建的一定要看得到，不管這個 key 之前是什麼狀態
     markDirty();
     refreshView();
     renderEditPanel();
@@ -2378,6 +2451,7 @@ async function init() {
   pxPerDay = loadZoom();
   scale = scaleForPx(pxPerDay);
   rangePad = loadRangePad();
+  collapsedTracks = loadCollapsed();
   await loadHolidays(); // 要在第一次渲染前載入，底色帶與工作日才算得出來
   renderHolidayLegend();
   renderHolidayNotes();
