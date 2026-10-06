@@ -2,7 +2,8 @@
   "schemaVersion": 3,
   "project": {
     "name": "SH400 腳蹬+椅座",
-    "description": "腳蹬與成椅兩條時程（2026/09 – 2027/06）／來源：20260916_SH400Timeline.xlsx 工作表 SH400"
+    "description": "腳蹬與成椅兩條時程（2026/09 – 2027/06）／來源：20260916_SH400Timeline.xlsx 工作表 SH400",
+    "baselineCapturedAt": "2026-10-06"
   },
   "phaseMarkers": [
     {
@@ -50,7 +51,10 @@
           "owner": "ASUS Wayne",
           "note": "",
           "links": [],
-          "baseline": null,
+          "baseline": {
+            "start": "2026-09-14",
+            "end": "2026-09-29"
+          },
           "subtasks": []
         },
         {
@@ -61,7 +65,10 @@
           "owner": "ASUS",
           "note": "原表以強調色標示的決策點。",
           "links": [],
-          "baseline": null,
+          "baseline": {
+            "start": "2026-09-30",
+            "end": "2026-09-30"
+          },
           "subtasks": []
         },
         {
@@ -72,7 +79,10 @@
           "owner": "Wayne",
           "note": "",
           "links": [],
-          "baseline": null,
+          "baseline": {
+            "start": "2026-10-01",
+            "end": "2026-10-04"
+          },
           "subtasks": []
         },
         {
@@ -83,7 +93,10 @@
           "owner": "ASUS Wayne",
           "note": "",
           "links": [],
-          "baseline": null,
+          "baseline": {
+            "start": "2026-10-05",
+            "end": "2026-10-08"
+          },
           "subtasks": []
         },
         {
@@ -94,7 +107,10 @@
           "owner": "Wayne",
           "note": "",
           "links": [],
-          "baseline": null,
+          "baseline": {
+            "start": "2026-10-09",
+            "end": "2026-10-15"
+          },
           "subtasks": []
         },
         {
@@ -105,7 +121,10 @@
           "owner": "ASUS Wayne",
           "note": "原表只填 10/16 一格，旁邊另有手寫註記「10/20 fix」，實際結束日請確認。",
           "links": [],
-          "baseline": null,
+          "baseline": {
+            "start": "2026-10-16",
+            "end": "2026-10-16"
+          },
           "subtasks": []
         },
         {
@@ -116,7 +135,10 @@
           "owner": "Angel",
           "note": "",
           "links": [],
-          "baseline": null,
+          "baseline": {
+            "start": "2026-10-21",
+            "end": "2026-11-03"
+          },
           "subtasks": []
         },
         {
@@ -127,7 +149,10 @@
           "owner": "ASUS BK",
           "note": "",
           "links": [],
-          "baseline": null,
+          "baseline": {
+            "start": "2026-11-04",
+            "end": "2026-11-13"
+          },
           "subtasks": []
         },
         {
@@ -138,7 +163,10 @@
           "owner": "Wayne",
           "note": "",
           "links": [],
-          "baseline": null,
+          "baseline": {
+            "start": "2026-11-14",
+            "end": "2026-11-18"
+          },
           "subtasks": []
         },
         {
@@ -149,7 +177,10 @@
           "owner": "Angel",
           "note": "",
           "links": [],
-          "baseline": null,
+          "baseline": {
+            "start": "2026-11-19",
+            "end": "2026-11-29"
+          },
           "subtasks": []
         },
         {
@@ -160,7 +191,10 @@
           "owner": "ASUS BK",
           "note": "",
           "links": [],
-          "baseline": null,
+          "baseline": {
+            "start": "2026-11-30",
+            "end": "2026-12-03"
+          },
           "subtasks": []
         },
         {
@@ -171,7 +205,10 @@
           "owner": "Wayne",
           "note": "",
           "links": [],
-          "baseline": null,
+          "baseline": {
+            "start": "2026-12-04",
+            "end": "2026-12-09"
+          },
           "subtasks": []
         },
         {
@@ -182,7 +219,10 @@
           "owner": "WJ",
           "note": "原表「模具」小節。",
           "links": [],
-          "baseline": null,
+          "baseline": {
+            "start": "2026-12-10",
+            "end": "2026-12-20"
+          },
           "subtasks": []
         },
         {
@@ -193,7 +233,10 @@
           "owner": "WJ",
           "note": "原表只填起日，結束日取該週週日。",
           "links": [],
-          "baseline": null,
+          "baseline": {
+            "start": "2026-12-21",
+            "end": "2027-01-31"
+          },
           "subtasks": []
         },
         {
@@ -204,7 +247,10 @@
           "owner": "",
           "note": "原表以黃色標示的停工區間（四週），非實際工作項目。",
           "links": [],
-          "baseline": null,
+          "baseline": {
+            "start": "2027-01-25",
+            "end": "2027-02-21"
+          },
           "subtasks": []
         },
         {
@@ -215,7 +261,10 @@
           "owner": "ASUS WJ/BK",
           "note": "原表註記「開工即可開始」。",
           "links": [],
-          "baseline": null,
+          "baseline": {
+            "start": "2027-02-22",
+            "end": "2027-03-07"
+          },
           "subtasks": []
         },
         {
@@ -226,7 +275,10 @@
           "owner": "WJ",
           "note": "",
           "links": [],
-          "baseline": null,
+          "baseline": {
+            "start": "2027-03-08",
+            "end": "2027-03-17"
+          },
           "subtasks": []
         },
         {
@@ -237,7 +289,10 @@
           "owner": "WJ",
           "note": "",
           "links": [],
-          "baseline": null,
+          "baseline": {
+            "start": "2027-03-18",
+            "end": "2027-03-28"
+          },
           "subtasks": []
         },
         {
@@ -248,7 +303,10 @@
           "owner": "ASUS WJ/BK",
           "note": "",
           "links": [],
-          "baseline": null,
+          "baseline": {
+            "start": "2027-03-29",
+            "end": "2027-04-27"
+          },
           "subtasks": []
         },
         {
@@ -259,7 +317,10 @@
           "owner": "WJ",
           "note": "",
           "links": [],
-          "baseline": null,
+          "baseline": {
+            "start": "2027-04-28",
+            "end": "2027-05-14"
+          },
           "subtasks": []
         },
         {
@@ -270,7 +331,10 @@
           "owner": "ASUS BK",
           "note": "",
           "links": [],
-          "baseline": null,
+          "baseline": {
+            "start": "2027-05-15",
+            "end": "2027-05-18"
+          },
           "subtasks": []
         },
         {
@@ -281,7 +345,10 @@
           "owner": "WJ",
           "note": "",
           "links": [],
-          "baseline": null,
+          "baseline": {
+            "start": "2027-05-19",
+            "end": "2027-06-07"
+          },
           "subtasks": []
         },
         {
@@ -292,7 +359,10 @@
           "owner": "WJ",
           "note": "",
           "links": [],
-          "baseline": null,
+          "baseline": {
+            "start": "2027-06-08",
+            "end": "2027-06-16"
+          },
           "subtasks": []
         },
         {
@@ -303,7 +373,10 @@
           "owner": "ASUS WJ/BK",
           "note": "",
           "links": [],
-          "baseline": null,
+          "baseline": {
+            "start": "2027-06-17",
+            "end": "2027-06-20"
+          },
           "subtasks": []
         }
       ]
@@ -321,7 +394,10 @@
           "owner": "Angel",
           "note": "",
           "links": [],
-          "baseline": null,
+          "baseline": {
+            "start": "2026-09-16",
+            "end": "2026-09-28"
+          },
           "subtasks": []
         },
         {
@@ -332,7 +408,10 @@
           "owner": "Angel",
           "note": "",
           "links": [],
-          "baseline": null,
+          "baseline": {
+            "start": "2026-09-28",
+            "end": "2026-10-01"
+          },
           "subtasks": []
         },
         {
@@ -343,7 +422,10 @@
           "owner": "ASUS Wayne",
           "note": "",
           "links": [],
-          "baseline": null,
+          "baseline": {
+            "start": "2026-10-01",
+            "end": "2026-10-18"
+          },
           "subtasks": []
         },
         {
@@ -354,7 +436,10 @@
           "owner": "WJ",
           "note": "",
           "links": [],
-          "baseline": null,
+          "baseline": {
+            "start": "2026-10-19",
+            "end": "2026-11-01"
+          },
           "subtasks": []
         },
         {
@@ -365,7 +450,10 @@
           "owner": "Angel",
           "note": "",
           "links": [],
-          "baseline": null,
+          "baseline": {
+            "start": "2026-09-14",
+            "end": "2026-09-20"
+          },
           "subtasks": []
         },
         {
@@ -376,7 +464,10 @@
           "owner": "Simon",
           "note": "",
           "links": [],
-          "baseline": null,
+          "baseline": {
+            "start": "2026-09-21",
+            "end": "2026-10-11"
+          },
           "subtasks": []
         },
         {
@@ -387,7 +478,10 @@
           "owner": "Angel",
           "note": "原表只有整格著色、沒有填日期，起訖取該週週一與週日。",
           "links": [],
-          "baseline": null,
+          "baseline": {
+            "start": "2026-09-14",
+            "end": "2026-10-04"
+          },
           "subtasks": []
         },
         {
@@ -398,7 +492,10 @@
           "owner": "WJ",
           "note": "原表只有整格著色、沒有填日期，起訖取該週週一與週日。",
           "links": [],
-          "baseline": null,
+          "baseline": {
+            "start": "2026-10-12",
+            "end": "2026-11-15"
+          },
           "subtasks": []
         },
         {
@@ -409,7 +506,10 @@
           "owner": "ASUS Wayne",
           "note": "",
           "links": [],
-          "baseline": null,
+          "baseline": {
+            "start": "2026-09-17",
+            "end": "2026-10-04"
+          },
           "subtasks": []
         },
         {
@@ -420,7 +520,10 @@
           "owner": "ID Wayne",
           "note": "",
           "links": [],
-          "baseline": null,
+          "baseline": {
+            "start": "2026-10-05",
+            "end": "2026-10-11"
+          },
           "subtasks": []
         },
         {
@@ -431,7 +534,10 @@
           "owner": "Simon WJ",
           "note": "原表只填 10/17 一格。",
           "links": [],
-          "baseline": null,
+          "baseline": {
+            "start": "2026-10-17",
+            "end": "2026-10-17"
+          },
           "subtasks": []
         },
         {
@@ -442,7 +548,10 @@
           "owner": "Simon Wayne",
           "note": "原表只有整格著色、沒有填日期，起訖取該週週一與週日。",
           "links": [],
-          "baseline": null,
+          "baseline": {
+            "start": "2026-10-19",
+            "end": "2026-10-25"
+          },
           "subtasks": []
         },
         {
@@ -453,7 +562,10 @@
           "owner": "WJ",
           "note": "原表只有整格著色、沒有填日期，起訖取該週週一與週日。原表此列與後面一列同名「模型製作」，為方便辨識加上編號。",
           "links": [],
-          "baseline": null,
+          "baseline": {
+            "start": "2026-10-26",
+            "end": "2026-11-08"
+          },
           "subtasks": []
         },
         {
@@ -464,7 +576,10 @@
           "owner": "",
           "note": "原表只有整格著色、沒有填日期，起訖取該週週一與週日。",
           "links": [],
-          "baseline": null,
+          "baseline": {
+            "start": "2026-11-09",
+            "end": "2026-11-22"
+          },
           "subtasks": []
         },
         {
@@ -475,7 +590,10 @@
           "owner": "WJ",
           "note": "原表只有整格著色、沒有填日期，起訖取該週週一與週日。原表此列與前面一列同名「模型製作」，為方便辨識加上編號。",
           "links": [],
-          "baseline": null,
+          "baseline": {
+            "start": "2026-11-23",
+            "end": "2026-11-29"
+          },
           "subtasks": []
         },
         {
@@ -486,7 +604,10 @@
           "owner": "",
           "note": "原表只有整格著色、沒有填日期，起訖取該週週一與週日。",
           "links": [],
-          "baseline": null,
+          "baseline": {
+            "start": "2026-11-30",
+            "end": "2026-12-06"
+          },
           "subtasks": []
         },
         {
@@ -497,7 +618,10 @@
           "owner": "",
           "note": "原表以強調色標示的決策點。只有整格著色、沒有填日期，起訖取該週週一與週日。",
           "links": [],
-          "baseline": null,
+          "baseline": {
+            "start": "2026-12-07",
+            "end": "2026-12-13"
+          },
           "subtasks": []
         },
         {
@@ -508,7 +632,10 @@
           "owner": "",
           "note": "原表只有整格著色、沒有填日期，起訖取該週週一與週日。",
           "links": [],
-          "baseline": null,
+          "baseline": {
+            "start": "2026-12-14",
+            "end": "2026-12-27"
+          },
           "subtasks": []
         },
         {
@@ -519,7 +646,10 @@
           "owner": "",
           "note": "原表只有整格著色、沒有填日期，起訖取該週週一與週日。",
           "links": [],
-          "baseline": null,
+          "baseline": {
+            "start": "2026-12-28",
+            "end": "2027-01-24"
+          },
           "subtasks": []
         },
         {
@@ -530,7 +660,10 @@
           "owner": "",
           "note": "原表只有整格著色、沒有填日期，起訖取該週週一與週日。與腳蹬的「中國新年」停工區間重疊，需確認。",
           "links": [],
-          "baseline": null,
+          "baseline": {
+            "start": "2027-01-25",
+            "end": "2027-03-07"
+          },
           "subtasks": []
         },
         {
@@ -541,7 +674,10 @@
           "owner": "",
           "note": "原表只有整格著色、沒有填日期，起訖取該週週一與週日。",
           "links": [],
-          "baseline": null,
+          "baseline": {
+            "start": "2027-02-22",
+            "end": "2027-03-21"
+          },
           "subtasks": []
         },
         {
@@ -552,10 +688,19 @@
           "owner": "",
           "note": "原表只有整格著色、沒有填日期，起訖取該週週一與週日。",
           "links": [],
-          "baseline": null,
+          "baseline": {
+            "start": "2027-02-22",
+            "end": "2027-03-21"
+          },
           "subtasks": []
         }
       ]
+    },
+    {
+      "key": "track-1",
+      "label": "Marketing",
+      "color": "rust",
+      "tasks": []
     }
   ]
 }
