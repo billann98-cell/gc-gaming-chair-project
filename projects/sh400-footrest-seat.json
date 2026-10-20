@@ -697,10 +697,172 @@
       ]
     },
     {
+      "key": "certification",
+      "label": "認證",
+      "color": "olive",
+      "tasks": [
+        {
+          "title": "認證開案",
+          "start": "2026-12-21",
+          "end": "2026-12-25",
+          "status": "upcoming",
+          "owner": "",
+          "note": "對應範例硬體專案的「認證開案」（TS／Tooling 開工階段）。本專案錨定在腳蹬「模具製作」開工同週。",
+          "links": [],
+          "baseline": null,
+          "subtasks": []
+        },
+        {
+          "title": "文件審查",
+          "start": "2027-02-22",
+          "end": "2027-03-05",
+          "status": "upcoming",
+          "owner": "",
+          "note": "對應範例的「文件審查」（修模階段）。本專案錨定在腳蹬「T0討論、修模」。注意：開案(12/21)之後接中國新年停工，中間空兩個月，要提早的話可以往前移到 1 月。",
+          "links": [],
+          "baseline": null,
+          "subtasks": []
+        },
+        {
+          "title": "送樣",
+          "start": "2027-03-08",
+          "end": "2027-03-12",
+          "status": "upcoming",
+          "owner": "",
+          "note": "對應範例的「送樣」（T0/T1、咬花階段）。本專案錨定在腳蹬「咬花」同週，此時 T0 件已可用。",
+          "links": [],
+          "baseline": null,
+          "subtasks": []
+        },
+        {
+          "title": "認證測試 (4-6wks)",
+          "start": "2027-03-15",
+          "end": "2027-04-23",
+          "status": "upcoming",
+          "owner": "",
+          "note": "對應範例的「認證測試 (4-6wks)」（T0/T1 → T2）。取 6 週上限，結束日落在腳蹬「小試產PVT 與 金樣生產」(4/28) 之前。成椅的 BIFMA、EN1335 測試另排在 2/22–3/21。",
+          "links": [],
+          "baseline": null,
+          "subtasks": []
+        },
+        {
+          "title": "投件 (2wks)",
+          "start": "2027-05-17",
+          "end": "2027-05-28",
+          "status": "upcoming",
+          "owner": "",
+          "note": "對應範例的「投件 (2wks)」（NPI 階段）。本專案錨定在腳蹬「金樣會議與簽樣」(5/15–5/18) 之後。",
+          "links": [],
+          "baseline": null,
+          "subtasks": []
+        },
+        {
+          "title": "取證",
+          "start": "2027-06-08",
+          "end": "2027-06-11",
+          "status": "upcoming",
+          "owner": "",
+          "note": "對應範例的「取證」（MP 階段）。本專案錨定在腳蹬「MP生產」開工同週。距離出貨 (6/20) 只有 9 天，沒有緩衝，建議確認是否要提前整條認證。",
+          "links": [],
+          "baseline": null,
+          "subtasks": []
+        }
+      ]
+    },
+    {
       "key": "track-1",
       "label": "Marketing",
       "color": "rust",
-      "tasks": []
+      "tasks": [
+        {
+          "title": "MKT Kick off",
+          "start": "2026-12-21",
+          "end": "2026-12-25",
+          "status": "upcoming",
+          "owner": "",
+          "note": "對應範例硬體專案的「MKT Kick off」（TS／Tooling 開工階段）。本專案錨定在腳蹬「模具製作」開工同週。",
+          "links": [],
+          "baseline": null,
+          "subtasks": []
+        },
+        {
+          "title": "Naming",
+          "start": "2026-12-21",
+          "end": "2027-01-15",
+          "status": "upcoming",
+          "owner": "",
+          "note": "對應範例的「Naming」（與 Kick off 同階段）。",
+          "links": [],
+          "baseline": null,
+          "subtasks": []
+        },
+        {
+          "title": "網頁 layout",
+          "start": "2027-02-22",
+          "end": "2027-03-12",
+          "status": "upcoming",
+          "owner": "",
+          "note": "對應範例的「網頁 layout」（修模階段）。本專案錨定在腳蹬「T0討論、修模」。",
+          "links": [],
+          "baseline": null,
+          "subtasks": []
+        },
+        {
+          "title": "Wording",
+          "start": "2027-02-22",
+          "end": "2027-06-18",
+          "status": "upcoming",
+          "owner": "",
+          "note": "對應範例的「Wording」，從修模階段一路做到 MP，是長期進行的項目。",
+          "links": [],
+          "baseline": null,
+          "subtasks": []
+        },
+        {
+          "title": "Photo Brief",
+          "start": "2027-03-08",
+          "end": "2027-03-17",
+          "status": "upcoming",
+          "owner": "",
+          "note": "對應範例的「Photo Brief」（T0/T1、咬花階段）。本專案錨定在腳蹬「咬花」。",
+          "links": [],
+          "baseline": null,
+          "subtasks": []
+        },
+        {
+          "title": "拍攝",
+          "start": "2027-04-28",
+          "end": "2027-05-07",
+          "status": "upcoming",
+          "owner": "",
+          "note": "對應範例的「拍攝」（T2／PVT 階段）。本專案錨定在腳蹬「小試產PVT 與 金樣生產」，此時才有可拍的金樣。",
+          "links": [],
+          "baseline": null,
+          "subtasks": []
+        },
+        {
+          "title": "修圖",
+          "start": "2027-05-10",
+          "end": "2027-06-04",
+          "status": "upcoming",
+          "owner": "",
+          "note": "對應範例的「修圖」（PVT → NPI）。",
+          "links": [],
+          "baseline": null,
+          "subtasks": []
+        },
+        {
+          "title": "Sales Kit 產品照/網頁",
+          "start": "2027-06-08",
+          "end": "2027-06-18",
+          "status": "upcoming",
+          "owner": "",
+          "note": "對應範例的「Sales Kit 產品照/網頁」（MP 階段）。結束日壓在出貨 (6/20) 之前。",
+          "links": [],
+          "baseline": null,
+          "subtasks": []
+        }
+      ]
     }
   ]
 }
