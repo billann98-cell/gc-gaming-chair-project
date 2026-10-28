@@ -1,0 +1,476 @@
+{
+  "schemaVersion": 3,
+  "project": {
+    "name": "SL201 Refresh",
+    "description": "CMF 確認 → MP 2027/05/20 → 1st lot ETD／階段結構依照「範例硬體專案」，自 MP 回推"
+  },
+  "phaseMarkers": [
+    {
+      "label": "Award 開案",
+      "date": "2026-11-27",
+      "highlight": true
+    },
+    {
+      "label": "TS",
+      "date": "2026-12-28",
+      "highlight": false
+    },
+    {
+      "label": "T0 / T1・Pre-NPI",
+      "date": "2027-03-15",
+      "highlight": true
+    },
+    {
+      "label": "T2",
+      "date": "2027-03-29",
+      "highlight": false
+    },
+    {
+      "label": "NPI",
+      "date": "2027-05-06",
+      "highlight": true
+    },
+    {
+      "label": "MP",
+      "date": "2027-05-20",
+      "highlight": true
+    },
+    {
+      "label": "1st lot ETD",
+      "date": "2027-06-17",
+      "highlight": false
+    }
+  ],
+  "tracks": [
+    {
+      "key": "product",
+      "label": "產品",
+      "color": "orange",
+      "tasks": [
+        {
+          "title": "CMF確認 & 業務Feedback",
+          "start": "2026-10-28",
+          "end": "2026-11-06",
+          "status": "in-progress",
+          "owner": "",
+          "note": "日期由使用者指定。",
+          "links": [],
+          "baseline": null,
+          "subtasks": []
+        },
+        {
+          "title": "MRS製作 & 提案",
+          "start": "2026-11-09",
+          "end": "2026-11-11",
+          "status": "upcoming",
+          "owner": "",
+          "note": "日期由使用者指定。",
+          "links": [],
+          "baseline": null,
+          "subtasks": []
+        },
+        {
+          "title": "MRS修改 & 二次提案",
+          "start": "2026-11-11",
+          "end": "2026-11-18",
+          "status": "upcoming",
+          "owner": "",
+          "note": "日期由使用者指定。",
+          "links": [],
+          "baseline": null,
+          "subtasks": []
+        },
+        {
+          "title": "開案前緩衝",
+          "start": "2026-11-18",
+          "end": "2026-11-27",
+          "status": "upcoming",
+          "owner": "",
+          "note": "日期由使用者指定。結束即為 Award 開案日。",
+          "links": [],
+          "baseline": null,
+          "subtasks": []
+        },
+        {
+          "title": "DFM",
+          "start": "2026-11-30",
+          "end": "2026-12-18",
+          "status": "upcoming",
+          "owner": "",
+          "note": "範例的 DFM（開案後第一段，與 Mock up 並行）。",
+          "links": [],
+          "baseline": null,
+          "subtasks": []
+        },
+        {
+          "title": "Mock up",
+          "start": "2026-11-30",
+          "end": "2026-12-25",
+          "status": "upcoming",
+          "owner": "",
+          "note": "範例的 Mock up，與 DFM 並行。",
+          "links": [],
+          "baseline": null,
+          "subtasks": []
+        },
+        {
+          "title": "色板打樣 / 承認 (ID/CMF)",
+          "start": "2026-12-21",
+          "end": "2027-01-27",
+          "status": "upcoming",
+          "owner": "",
+          "note": "範例排在 Tooling 同期。結束日壓在大陸供應商停線（1/28）之前。",
+          "links": [],
+          "baseline": null,
+          "subtasks": []
+        },
+        {
+          "title": "Tooling",
+          "start": "2026-12-28",
+          "end": "2027-02-26",
+          "status": "upcoming",
+          "owner": "",
+          "note": "TS 開模。中間卡大陸供應商停線 1/28–2/20（約 3.3 週），實際可用工時約 5 週。Refresh 若是改模可行，若需全新開模要往前拉。",
+          "links": [],
+          "baseline": null,
+          "subtasks": [
+            {
+              "title": "模具報價 / 下單",
+              "done": false
+            },
+            {
+              "title": "模具打樣",
+              "done": false
+            },
+            {
+              "title": "試模 T1",
+              "done": false
+            },
+            {
+              "title": "修模確認",
+              "done": false
+            }
+          ]
+        },
+        {
+          "title": "修模",
+          "start": "2027-03-01",
+          "end": "2027-03-12",
+          "status": "upcoming",
+          "owner": "",
+          "note": "停線結束（2/20）後接 T1 試模，再進修模。完成即 T0/T1 里程碑。",
+          "links": [],
+          "baseline": null,
+          "subtasks": []
+        },
+        {
+          "title": "咬花",
+          "start": "2027-03-15",
+          "end": "2027-03-26",
+          "status": "upcoming",
+          "owner": "",
+          "note": "範例排在 T0/T1 之後。",
+          "links": [],
+          "baseline": null,
+          "subtasks": []
+        },
+        {
+          "title": "工件承認 (ID/CMF)",
+          "start": "2027-03-22",
+          "end": "2027-03-26",
+          "status": "upcoming",
+          "owner": "",
+          "note": "範例與咬花同期。",
+          "links": [],
+          "baseline": null,
+          "subtasks": []
+        },
+        {
+          "title": "PVT生產",
+          "start": "2027-03-29",
+          "end": "2027-04-16",
+          "status": "upcoming",
+          "owner": "",
+          "note": "T2 里程碑。期間含清明連假 4/3–4/6，實際工作天約 11 天。",
+          "links": [],
+          "baseline": null,
+          "subtasks": []
+        },
+        {
+          "title": "PVT全檢",
+          "start": "2027-04-19",
+          "end": "2027-05-12",
+          "status": "upcoming",
+          "owner": "",
+          "note": "範例跨 PVT 與 NPI 兩個階段。期間含五一長假 5/1–5/5。",
+          "links": [],
+          "baseline": null,
+          "subtasks": []
+        },
+        {
+          "title": "QTR",
+          "start": "2027-05-06",
+          "end": "2027-05-12",
+          "status": "upcoming",
+          "owner": "",
+          "note": "範例排在 NPI 之後。",
+          "links": [],
+          "baseline": null,
+          "subtasks": []
+        },
+        {
+          "title": "鍍樣 (PM)",
+          "start": "2027-05-06",
+          "end": "2027-05-12",
+          "status": "upcoming",
+          "owner": "",
+          "note": "範例與 QTR 同期。",
+          "links": [],
+          "baseline": null,
+          "subtasks": []
+        },
+        {
+          "title": "Sales & MR sample ETD",
+          "start": "2027-05-20",
+          "end": "2027-06-03",
+          "status": "upcoming",
+          "owner": "",
+          "note": "範例排在 MP 之後。",
+          "links": [],
+          "baseline": null,
+          "subtasks": []
+        }
+      ]
+    },
+    {
+      "key": "packaging",
+      "label": "包裝",
+      "color": "slate",
+      "tasks": [
+        {
+          "title": "包裝結構樣",
+          "start": "2026-12-28",
+          "end": "2027-01-27",
+          "status": "upcoming",
+          "owner": "",
+          "note": "範例排在 TS 同期。",
+          "links": [],
+          "baseline": null,
+          "subtasks": []
+        },
+        {
+          "title": "製作 label",
+          "start": "2026-12-28",
+          "end": "2027-01-27",
+          "status": "upcoming",
+          "owner": "",
+          "note": "範例排在 TS 同期。",
+          "links": [],
+          "baseline": null,
+          "subtasks": []
+        },
+        {
+          "title": "製作 QSG",
+          "start": "2026-12-28",
+          "end": "2027-01-27",
+          "status": "upcoming",
+          "owner": "",
+          "note": "範例排在 TS 同期。",
+          "links": [],
+          "baseline": null,
+          "subtasks": []
+        },
+        {
+          "title": "Label 試刷",
+          "start": "2027-03-29",
+          "end": "2027-04-16",
+          "status": "upcoming",
+          "owner": "",
+          "note": "範例排在 T2／PVT 同期。",
+          "links": [],
+          "baseline": null,
+          "subtasks": []
+        },
+        {
+          "title": "QSG, 彩盒, label, 包材簽樣",
+          "start": "2027-05-06",
+          "end": "2027-05-19",
+          "status": "upcoming",
+          "owner": "",
+          "note": "範例排在 NPI 階段。結束日壓在 MP（5/20）之前。",
+          "links": [],
+          "baseline": null,
+          "subtasks": []
+        }
+      ]
+    },
+    {
+      "key": "certification",
+      "label": "認證",
+      "color": "rust",
+      "tasks": [
+        {
+          "title": "認證開案",
+          "start": "2026-12-28",
+          "end": "2026-12-31",
+          "status": "upcoming",
+          "owner": "",
+          "note": "範例排在 TS 同期。",
+          "links": [],
+          "baseline": null,
+          "subtasks": []
+        },
+        {
+          "title": "文件審查",
+          "start": "2027-03-01",
+          "end": "2027-03-12",
+          "status": "upcoming",
+          "owner": "",
+          "note": "範例排在修模階段。開案（12/28）之後中間卡停線，要提早可以移到 1 月。",
+          "links": [],
+          "baseline": null,
+          "subtasks": []
+        },
+        {
+          "title": "送樣",
+          "start": "2027-03-15",
+          "end": "2027-03-19",
+          "status": "upcoming",
+          "owner": "",
+          "note": "範例排在 T0/T1 階段，此時才有可送測的件。",
+          "links": [],
+          "baseline": null,
+          "subtasks": []
+        },
+        {
+          "title": "認證測試 (4-6wks)",
+          "start": "2027-03-22",
+          "end": "2027-04-30",
+          "status": "upcoming",
+          "owner": "",
+          "note": "取 6 週上限。期間含清明連假。",
+          "links": [],
+          "baseline": null,
+          "subtasks": []
+        },
+        {
+          "title": "投件 (2wks)",
+          "start": "2027-05-06",
+          "end": "2027-05-19",
+          "status": "upcoming",
+          "owner": "",
+          "note": "範例排在 NPI 階段。",
+          "links": [],
+          "baseline": null,
+          "subtasks": []
+        },
+        {
+          "title": "取證",
+          "start": "2027-05-20",
+          "end": "2027-06-03",
+          "status": "upcoming",
+          "owner": "",
+          "note": "範例排在 MP 階段，也就是證書會晚於 MP 開線。若這張證是出貨必要條件，整條認證要往前拉約三週。",
+          "links": [],
+          "baseline": null,
+          "subtasks": []
+        }
+      ]
+    },
+    {
+      "key": "marketing",
+      "label": "行銷素材",
+      "color": "olive",
+      "tasks": [
+        {
+          "title": "MKT Kick off",
+          "start": "2026-12-28",
+          "end": "2026-12-31",
+          "status": "upcoming",
+          "owner": "",
+          "note": "範例排在 TS 同期。",
+          "links": [],
+          "baseline": null,
+          "subtasks": []
+        },
+        {
+          "title": "Naming",
+          "start": "2026-12-28",
+          "end": "2027-01-27",
+          "status": "upcoming",
+          "owner": "",
+          "note": "範例與 Kick off 同期。",
+          "links": [],
+          "baseline": null,
+          "subtasks": []
+        },
+        {
+          "title": "網頁 layout",
+          "start": "2027-03-01",
+          "end": "2027-03-19",
+          "status": "upcoming",
+          "owner": "",
+          "note": "範例排在修模階段。",
+          "links": [],
+          "baseline": null,
+          "subtasks": []
+        },
+        {
+          "title": "Wording",
+          "start": "2027-03-01",
+          "end": "2027-06-03",
+          "status": "upcoming",
+          "owner": "",
+          "note": "範例從修模一路做到 MP，是長期進行的項目。",
+          "links": [],
+          "baseline": null,
+          "subtasks": []
+        },
+        {
+          "title": "Photo Brief",
+          "start": "2027-03-15",
+          "end": "2027-03-26",
+          "status": "upcoming",
+          "owner": "",
+          "note": "範例排在 T0/T1 階段。",
+          "links": [],
+          "baseline": null,
+          "subtasks": []
+        },
+        {
+          "title": "拍攝",
+          "start": "2027-04-12",
+          "end": "2027-04-23",
+          "status": "upcoming",
+          "owner": "",
+          "note": "範例排在 PVT 階段，要等 PVT 件才有東西拍。",
+          "links": [],
+          "baseline": null,
+          "subtasks": []
+        },
+        {
+          "title": "修圖",
+          "start": "2027-04-26",
+          "end": "2027-05-19",
+          "status": "upcoming",
+          "owner": "",
+          "note": "範例跨 PVT 與 NPI 兩個階段。",
+          "links": [],
+          "baseline": null,
+          "subtasks": []
+        },
+        {
+          "title": "Sales Kit 產品照/網頁",
+          "start": "2027-05-20",
+          "end": "2027-06-10",
+          "status": "upcoming",
+          "owner": "",
+          "note": "範例排在 MP 階段，壓在 1st lot ETD（6/17）之前。",
+          "links": [],
+          "baseline": null,
+          "subtasks": []
+        }
+      ]
+    }
+  ]
+}
