@@ -518,6 +518,42 @@ footer {
   flex-shrink: 0;
 }
 
+/* 專案頁的工具列有十來顆按鈕，和標題並排時會把標題區壓成一條窄欄，
+   專案說明被迫折成三四行擠在左上角。改成上下兩列：第一列放返回連結與
+   工具列，第二列讓標題、說明、進度用滿整個寬度。
+   只有專案頁套用（首頁只有一顆按鈕，並排沒問題）。 */
+.dash-header.header-stack {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 14px;
+}
+
+.header-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px 16px;
+  flex-wrap: wrap;
+}
+
+.header-stack .back-link {
+  margin: 0;
+  flex: 0 0 auto;
+}
+
+/* 基礎 .header-actions 是 flex-shrink: 0，在這裡會讓整列按鈕硬撐成一行而溢出。
+   改成可收縮並允許按鈕換行，視窗變窄時才會往下折而不是衝出容器。 */
+.header-stack .header-actions {
+  flex: 1 1 auto;
+  min-width: 0;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.header-stack .header-main h1 { margin-bottom: 6px; }
+
+.header-stack .header-main p.desc { margin-bottom: 12px; }
+
 .back-link {
   margin: 0 0 6px;
   font-size: 0.85rem;
@@ -2219,6 +2255,8 @@ footer {
   .owner-input { flex: 1 1 100% !important; }
   .dash-header { flex-direction: column; }
   .header-actions { flex-wrap: wrap; }
+  /* 窄視窗下按鈕會折成好幾列，靠右對齊會變成參差不齊的鋸齒，改成靠左 */
+  .header-stack .header-actions { justify-content: flex-start; }
 }
 
 /* ============================================================
@@ -2251,6 +2289,8 @@ footer {
   .edit-panel,
   .modal-overlay,
   .banner-slot,
+  /* .header-bar 的內容列印時全部隱藏，連空殼一起拿掉才不會多留一條間距 */
+  .header-bar,
   .header-actions,
   .back-link,
   .bar-handle,

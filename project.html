@@ -8,32 +8,34 @@
 </head>
 <body>
   <div class="container">
-    <header class="dash-header">
-      <div class="header-main">
+    <header class="dash-header header-stack">
+      <div class="header-bar">
         <p class="back-link no-print"><a href="index.html">← 所有專案</a></p>
+        <div class="header-actions no-print">
+          <div class="scale-toggle" id="scale-toggle" role="group" aria-label="時間軸刻度">
+            <button type="button" data-scale="day">日</button>
+            <button type="button" data-scale="week">週</button>
+            <button type="button" data-scale="month">月</button>
+          </div>
+          <div class="scale-toggle range-toggle" id="range-toggle" role="group" aria-label="時間軸顯示範圍">
+            <button type="button" id="range-earlier" data-range="earlier" title="時間軸往前延伸一個月，看更早的日期">← 更早</button>
+            <button type="button" id="range-reset" data-range="reset" hidden>重設</button>
+            <button type="button" id="range-later" data-range="later" title="時間軸往後延伸一個月，看更晚的日期">更晚 →</button>
+          </div>
+          <button class="btn-secondary" id="export-btn" title="把目前的排程匯出成 Excel，可直接改完再匯回來">📊 匯出 Excel</button>
+          <button class="btn-secondary" id="tpl-download-btn" title="下載 Excel 範本，照著填寫後可直接匯入">📥 範本</button>
+          <button class="btn-secondary" id="tpl-upload-btn" title="上傳填好的 Excel 範本，產出專案排程">📤 匯入 Excel</button>
+          <input type="file" id="tpl-file-input" accept=".xlsx,.csv,.tsv,.txt" style="display:none;" />
+          <button class="btn-secondary" id="baseline-view-btn" title="顯示或隱藏基準線對比">📏 基準線</button>
+          <button class="btn-secondary" id="print-btn" title="列印或另存 PDF">🖨️ 列印</button>
+          <button class="btn-secondary" id="edit-toggle-btn">✏️ 編輯</button>
+          <button class="btn-primary" id="save-btn" style="display:none;">儲存到 GitHub</button>
+        </div>
+      </div>
+      <div class="header-main">
         <h1 id="project-name">專案名稱</h1>
         <p class="desc" id="project-desc">專案說明</p>
         <div class="project-progress" id="project-progress"></div>
-      </div>
-      <div class="header-actions no-print">
-        <div class="scale-toggle" id="scale-toggle" role="group" aria-label="時間軸刻度">
-          <button type="button" data-scale="day">日</button>
-          <button type="button" data-scale="week">週</button>
-          <button type="button" data-scale="month">月</button>
-        </div>
-        <div class="scale-toggle range-toggle" id="range-toggle" role="group" aria-label="時間軸顯示範圍">
-          <button type="button" id="range-earlier" data-range="earlier" title="時間軸往前延伸一個月，看更早的日期">← 更早</button>
-          <button type="button" id="range-reset" data-range="reset" hidden>重設</button>
-          <button type="button" id="range-later" data-range="later" title="時間軸往後延伸一個月，看更晚的日期">更晚 →</button>
-        </div>
-        <button class="btn-secondary" id="export-btn" title="把目前的排程匯出成 Excel，可直接改完再匯回來">📊 匯出 Excel</button>
-        <button class="btn-secondary" id="tpl-download-btn" title="下載 Excel 範本，照著填寫後可直接匯入">📥 範本</button>
-        <button class="btn-secondary" id="tpl-upload-btn" title="上傳填好的 Excel 範本，產出專案排程">📤 匯入 Excel</button>
-        <input type="file" id="tpl-file-input" accept=".xlsx,.csv,.tsv,.txt" style="display:none;" />
-        <button class="btn-secondary" id="baseline-view-btn" title="顯示或隱藏基準線對比">📏 基準線</button>
-        <button class="btn-secondary" id="print-btn" title="列印或另存 PDF">🖨️ 列印</button>
-        <button class="btn-secondary" id="edit-toggle-btn">✏️ 編輯</button>
-        <button class="btn-primary" id="save-btn" style="display:none;">儲存到 GitHub</button>
       </div>
     </header>
 
