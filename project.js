@@ -1861,6 +1861,125 @@ $("tpl-download-btn").addEventListener("click", () => {
   }
 });
 
+/* ---------- 匯出現有排程 ---------- */
+
+/* 工作表名稱與標題列刻意跟範本一模一樣，匯出的檔案才能直接改一改再匯回來。
+   匯入端是用工作表名稱的正規式挑表（/任務/、/里程碑/、/專案資訊|專案/），
+   所以額外的表要避開這些字 ——「進度摘要」「匯出說明」都不會被誤認。 */
+
+// 唯讀欄位放在標題列的最後面。taskHeaderKey() 認不得這些標題會回傳 null，
+// 匯回來時整欄略過，不會干擾前面七欄的對應。
+const EXPORT_EXTRA_HEADERS = ["工期（天）", "細項", "連結"];
+
+function subtaskSummary(task) {
+  return (task.subtasks || []).map((s) => `${s.done ? "✔" : "☐"} ${s.title}`).join("；");
+}
+
+function linkSummary(task) {
+  return (task.links || [])
+    .map((l) => (l.label ? `${l.label}（${l.url}）` : l.url))
+    .filter(Boolean)
+    .join("；");
+}
+
+function buildExportSheets() {
+  const now = new Date();
+  const stamp = `${formatDate(now)} ${now.toTimeString().slice(0, 5)}`;
+  const range = contentDateRange(data);
+  const total = aggregateProgress(allTasks(data));
+
+  const taskRows = [TASK_HEADERS.concat(EXPORT_EXTRA_HEADERS)];
+  data.tracks.forEach((track) => {
+    (track.tasks || []).forEach((task) => {
+      taskRows.push([
+        track.label,
+        task.title || "",
+        task.start || "",
+        task.end || "",
+        STATUS_LABEL[task.status] || STATUS_LABEL.upcoming,
+        task.owner || "",
+        task.note || "",
+        String(taskDays(task) || ""),
+        subtaskSummary(task),
+        linkSummary(task),
+      ]);
+    });
+  });
+
+  const markerRows = [MARKER_HEADERS];
+  (data.phaseMarkers || []).forEach((m) => markerRows.push([m.label || "", m.date || "", m.highlight ? "是" : ""]));
+
+  const summaryRows = [["分類", "任務數", "已完成", "進行中", "待辦", "完成度", "最早開始", "最晚結束"]];
+  data.tracks.forEach((track) => {
+    const tasks = track.tasks || [];
+    const agg = aggregateProgress(tasks);
+    const starts = tasks.map((t) => t.start).filter(Boolean).sort();
+    const ends = tasks.map((t) => t.end).filter(Boolean).sort();
+    summaryRows.push([
+      track.label,
+      String(tasks.length),
+      String(agg.done),
+      String(tasks.filter((t) => t.status === "in-progress").length),
+      String(tasks.filter((t) => t.status !== "done" && t.status !== "in-progress").length),
+      `${agg.pct}%`,
+      starts[0] || "",
+      ends[ends.length - 1] || "",
+    ]);
+  });
+  summaryRows.push([
+    "合計",
+    String(total.total),
+    String(total.done),
+    "",
+    "",
+    `${total.pct}%`,
+    range ? toISO(range.min) : "",
+    range ? toISO(range.max) : "",
+  ]);
+
+  const info = [
+    ["欄位", "內容"],
+    ["專案名稱", data.project.name || ""],
+    ["專案說明", data.project.description || ""],
+  ];
+
+  const guide = [
+    ["專案排程追蹤 ・ 匯出檔說明"],
+    [""],
+    ["匯出時間", stamp],
+    ["資料來源", filePath],
+    ["涵蓋期間", range ? `${toISO(range.min)} ~ ${toISO(range.max)}` : "（沒有任何日期）"],
+    ["完成度", `${total.pct}%（${total.done}/${total.total}）`],
+    [""],
+    ["1.", "這是匯出當下的現況快照。改完「任務」「里程碑」「專案資訊」三張工作表後，可以用網站右上角的「📤 匯入 Excel」匯回去。"],
+    ["2.", "「工期（天）」「細項」「連結」三欄是算出來／整理出來給人看的，匯回去時會被忽略，改了也不會生效。"],
+    ["3.", "匯回去時若選「取代整個排程」，原本任務的細項、連結與基準線都會消失 —— 這三樣 Excel 存不回去。只想改日期的話建議直接在網站上編輯。"],
+    ["4.", "選「新增到現有排程」則是把每一列當成新任務追加，不會動到原有的任務。"],
+    ["5.", "「進度摘要」「匯出說明」這兩張工作表匯入時不會被讀取。"],
+    [""],
+    ["注意：", "不要改動工作表名稱與前七欄的標題列，系統靠它們辨識欄位。"],
+  ];
+
+  return [
+    { name: "任務", rows: taskRows, widths: [14, 32, 13, 13, 10, 14, 40, 10, 34, 30] },
+    { name: "里程碑", rows: markerRows, widths: [22, 14, 22] },
+    { name: "進度摘要", rows: summaryRows, widths: [16, 9, 9, 9, 8, 10, 13, 13] },
+    { name: "專案資訊", rows: info, widths: [16, 70] },
+    { name: "匯出說明", rows: guide, widths: [16, 96], headerRows: 1 },
+  ];
+}
+
+$("export-btn").addEventListener("click", () => {
+  try {
+    const blob = buildXlsx(buildExportSheets());
+    const d = today();
+    const ymd = `${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, "0")}${String(d.getDate()).padStart(2, "0")}`;
+    downloadBlob(blob, `${safeFileName(data.project.name)}-排程-${ymd}.xlsx`);
+  } catch (e) {
+    alert(`匯出失敗：${e.message}`);
+  }
+});
+
 /* ---------- Excel 範本上傳 ---------- */
 
 let uploadState = null;
