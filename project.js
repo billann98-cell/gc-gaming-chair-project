@@ -1955,18 +1955,216 @@ function buildExportSheets() {
     ["2.", "「工期（天）」「細項」「連結」三欄是算出來／整理出來給人看的，匯回去時會被忽略，改了也不會生效。"],
     ["3.", "匯回去時若選「取代整個排程」，原本任務的細項、連結與基準線都會消失 —— 這三樣 Excel 存不回去。只想改日期的話建議直接在網站上編輯。"],
     ["4.", "選「新增到現有排程」則是把每一列當成新任務追加，不會動到原有的任務。"],
-    ["5.", "「進度摘要」「匯出說明」這兩張工作表匯入時不會被讀取。"],
+    ["5.", "「甘特圖」「進度摘要」「匯出說明」這三張工作表只是給人看的，匯入時不會被讀取。"],
+    ["6.", "「甘特圖」的長條以週為單位填色，只要該週和任務期間有重疊就整格上色；精確起訖日請看該列的「起訖」欄。"],
     [""],
     ["注意：", "不要改動工作表名稱與前七欄的標題列，系統靠它們辨識欄位。"],
   ];
 
   return [
+    buildGanttSheet(),
     { name: "任務", rows: taskRows, widths: [14, 32, 13, 13, 10, 14, 40, 10, 34, 30] },
     { name: "里程碑", rows: markerRows, widths: [22, 14, 22] },
     { name: "進度摘要", rows: summaryRows, widths: [16, 9, 9, 9, 8, 10, 13, 13] },
     { name: "專案資訊", rows: info, widths: [16, 70] },
     { name: "匯出說明", rows: guide, widths: [16, 96], headerRows: 1 },
   ];
+}
+
+/* ---------- 甘特圖工作表 ----------
+   版面比照使用者提供的 20260916_SH400Timeline.xlsx：左邊是任務清單欄位，
+   上方是「月份帶 → 週一到週日的日期」，右邊每一欄是一週，長條由純底色的
+   空白儲存格排出來（這也是來源檔的畫法，不是插入圖形）。 */
+
+const GANTT_LEFT_HEADERS = ["項次", "任務", "天數", "負責人", "狀態", "起訖"];
+const GANTT_C0 = GANTT_LEFT_HEADERS.length; // 第一個週欄的索引（0-based）
+const GANTT_WEEKDAYS = ["一", "二", "三", "四", "五", "六", "日"];
+
+// 涵蓋期間往外對齊到整週，一週一欄
+function ganttWeekColumns(range) {
+  const first = mondayOf(range.min);
+  const last = mondayOf(range.max);
+  const out = [];
+  for (let d = first; d <= last; d = addDays(d, 7)) out.push(d);
+  return out;
+}
+
+// 某一天在哪一本日曆放假；台灣與大陸分開上色，和網站上的圖例一致
+function ganttDayStyle(d) {
+  const iso = toISO(d);
+  for (const cal of calendars) {
+    const ix = calIndex[cal.id];
+    if (ix && ix.holidays.has(iso)) return cal.id === "cn" ? "dayCn" : "dayTw";
+  }
+  const dow = d.getDay();
+  return dow === 0 || dow === 6 ? "dayWeekend" : "day";
+}
+
+function ganttStatusStyle(task) {
+  if (task.status === "done") return "stDone";
+  if (task.status === "in-progress") return "stDoing";
+  const e = parseISO(task.end);
+  // 已經過了結束日還沒完成 —— 對應來源檔圖例裡的 undone
+  return e && e < today() ? "stLate" : "stTodo";
+}
+
+function buildGanttSheet() {
+  const range = contentDateRange(data) || { min: today(), max: addDays(today(), 30) };
+  const weeks = ganttWeekColumns(range);
+  const width = GANTT_C0 + weeks.length;
+  const rows = [];
+  const merges = [];
+  const blank = () => new Array(width).fill("");
+
+  const put = (row, i, v, s) => {
+    row[i] = s ? { v, s } : v;
+  };
+
+  // --- 標題區 ---
+  const r0 = blank();
+  put(r0, 0, data.project.name || "專案", "title");
+  rows.push(r0);
+
+  const r1 = blank();
+  put(r1, 0, data.project.description || "", "sub");
+  rows.push(r1);
+
+  const now = new Date();
+  const r2 = blank();
+  put(
+    r2,
+    0,
+    `期間 ${toISO(range.min)} ~ ${toISO(range.max)}　・　匯出 ${formatDate(now)} ${now
+      .toTimeString()
+      .slice(0, 5)}`,
+    "sub"
+  );
+  rows.push(r2);
+
+  rows.push(blank());
+
+  // --- 月份帶（同一個月的週欄合併成一格）---
+  const monthRow = blank();
+  let runStart = 0;
+  const flushMonth = (endIdx) => {
+    const d = weeks[runStart];
+    put(monthRow, GANTT_C0 + runStart, `${d.getFullYear()}/${d.getMonth() + 1}`, "month");
+    for (let i = runStart + 1; i <= endIdx; i++) put(monthRow, GANTT_C0 + i, "", "month");
+    if (endIdx > runStart) merges.push([rows.length, GANTT_C0 + runStart, rows.length, GANTT_C0 + endIdx]);
+  };
+  weeks.forEach((d, i) => {
+    if (i === 0) return;
+    if (d.getMonth() !== weeks[runStart].getMonth() || d.getFullYear() !== weeks[runStart].getFullYear()) {
+      flushMonth(i - 1);
+      runStart = i;
+    }
+  });
+  flushMonth(weeks.length - 1);
+  put(monthRow, 0, "月份", "head");
+  rows.push(monthRow);
+
+  // --- 週一到週日各一列，填該週對應日期 ---
+  GANTT_WEEKDAYS.forEach((label, offset) => {
+    const row = blank();
+    put(row, GANTT_C0 - 1, `週${label}`, "dayLabel");
+    weeks.forEach((mon, i) => {
+      const d = addDays(mon, offset);
+      put(row, GANTT_C0 + i, formatDateShort(d), ganttDayStyle(d));
+    });
+    rows.push(row);
+  });
+
+  rows.push(blank());
+
+  // --- 表頭：左邊欄位名稱 + 週次 ---
+  const head = blank();
+  GANTT_LEFT_HEADERS.forEach((h, i) => put(head, i, h, "head"));
+  weeks.forEach((mon, i) => put(head, GANTT_C0 + i, `WK${String(isoWeekInfo(mon).isoWeek).padStart(2, "0")}`, "head"));
+  const headRowIndex = rows.length;
+  rows.push(head);
+
+  // --- 里程碑列：標在所屬的那一週 ---
+  const markers = (data.phaseMarkers || []).filter((m) => parseISO(m.date));
+  if (markers.length) {
+    const row = blank();
+    put(row, 0, "里程碑", "cell");
+    weeks.forEach((mon, i) => put(row, GANTT_C0 + i, "", "grid"));
+    markers.forEach((m) => {
+      const d = parseISO(m.date);
+      const i = Math.floor(dayDiff(d, weeks[0]) / 7);
+      if (i >= 0 && i < weeks.length) put(row, GANTT_C0 + i, `${m.label}（${formatDateShort(d)}）`, "month");
+    });
+    rows.push(row);
+  }
+
+  // --- 每條分類一個區塊 ---
+  data.tracks.forEach((track, ti) => {
+    const barStyle = `bar${ti % 4}`;
+
+    const secRow = blank();
+    for (let i = 0; i < width; i++) put(secRow, i, "", "section");
+    put(secRow, 0, track.label, "section");
+    rows.push(secRow);
+
+    (track.tasks || []).forEach((task, tj) => {
+      const row = blank();
+      const s = parseISO(task.start);
+      const e = parseISO(task.end);
+      put(row, 0, String(tj + 1), "cellCenter");
+      put(row, 1, task.title || "", "cell");
+      put(row, 2, String(taskDays(task) || ""), "cellCenter");
+      put(row, 3, task.owner || "", "cell");
+      put(row, 4, STATUS_LABEL[task.status] || STATUS_LABEL.upcoming, ganttStatusStyle(task));
+      put(row, 5, s && e ? `${formatDateShort(s)} ~ ${formatDateShort(e)}` : "", "cellCenter");
+
+      weeks.forEach((mon, i) => {
+        const sun = addDays(mon, 6);
+        const covered = s && e && s <= sun && e >= mon;
+        put(row, GANTT_C0 + i, "", covered ? barStyle : "grid");
+      });
+      rows.push(row);
+    });
+  });
+
+  // --- 圖例 ---
+  rows.push(blank());
+  const legendTitle = blank();
+  put(legendTitle, 0, "圖例", "bold");
+  rows.push(legendTitle);
+
+  const legend = (styleKey, text) => {
+    const row = blank();
+    put(row, 0, "", styleKey);
+    put(row, 1, text, "default");
+    rows.push(row);
+  };
+  data.tracks.forEach((t, i) => legend(`bar${i % 4}`, `長條顏色：${t.label}`));
+  legend("stDone", "狀態：已完成");
+  legend("stDoing", "狀態：進行中");
+  legend("stLate", "狀態：已過結束日但未完成");
+  legend("dayWeekend", "日期列：週末");
+  calendars.forEach((c) => legend(c.id === "cn" ? "dayCn" : "dayTw", `日期列：${c.label}`));
+
+  const note = blank();
+  put(
+    note,
+    0,
+    "長條以「週」為單位填色，只要該週與任務期間有重疊就整格上色；精確起訖日請看「起訖」欄。",
+    "sub"
+  );
+  rows.push(note);
+
+  const widths = [6, 34, 7, 14, 10, 18].concat(new Array(weeks.length).fill(4.2));
+
+  return {
+    name: "甘特圖",
+    rows,
+    widths,
+    headerRows: 0, // 每一格都自己帶樣式，不要再自動加粗
+    merges,
+    freeze: { row: headRowIndex + 1, col: GANTT_C0 },
+    rowHeights: { 0: 22 },
+  };
 }
 
 $("export-btn").addEventListener("click", () => {

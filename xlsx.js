@@ -167,10 +167,136 @@ function colIndex(ref) {
 
 /* ---------- 產生 .xlsx ---------- */
 
-// sheets: [{ name, rows: [[cell, ...], ...], widths?: [n, ...], headerRows?: 1 }]
-// 所有值都以文字寫入（inlineStr），避免日期序號與地區設定的坑。
+/* 樣式表。鍵的「順序」就是 cellXfs 的索引，所以 default 必須排第 0、bold 必須排第 1 ——
+   既有的 headerRows 參數就是靠 s="1" 把標題列變粗體的，順序一動就全錯。
+   fill 是 ARGB 八碼（前兩碼是 alpha，Excel 一律用 FF）。 */
+const SHEET_STYLES = {
+  default: {},
+  bold: { b: true },
+
+  title: { b: true, sz: 14 },
+  sub: { sz: 9, color: "FF808080" },
+
+  head: { b: true, sz: 10, fill: "FF00CCFF", border: true, center: true },
+  month: { b: true, sz: 10, fill: "FFF2F2F2", border: true, center: true },
+
+  dayLabel: { b: true, sz: 8, border: true, center: true },
+  day: { sz: 8, border: true, center: true },
+  dayWeekend: { sz: 8, fill: "FFE8E8E8", border: true, center: true },
+  dayTw: { sz: 8, fill: "FFE9D5FF", border: true, center: true },
+  dayCn: { sz: 8, fill: "FFFBCFE8", border: true, center: true },
+
+  section: { b: true, sz: 11, fill: "FFD9D9D9", border: true },
+  cell: { sz: 10, border: true },
+  cellCenter: { sz: 10, border: true, center: true },
+
+  grid: { border: true },
+  gridWeekend: { fill: "FFF7F7F7", border: true },
+
+  // 長條顏色對應網站的四個軌道色（orange / slate / rust / olive）
+  bar0: { fill: "FFE8952E", border: true },
+  bar1: { fill: "FF7A97AB", border: true },
+  bar2: { fill: "FFA0522D", border: true },
+  bar3: { fill: "FF7D8C5C", border: true },
+
+  // 狀態欄的色塊，沿用來源檔 DO / PLAN / undone 的配色
+  stDone: { sz: 9, fill: "FF99CC00", border: true, center: true },
+  stDoing: { sz: 9, fill: "FF00FF00", border: true, center: true },
+  stLate: { sz: 9, fill: "FFFF0000", color: "FFFFFFFF", border: true, center: true },
+  stTodo: { sz: 9, border: true, center: true },
+};
+
+const SHEET_STYLE_KEYS = Object.keys(SHEET_STYLES);
+
+function styleIndex(key) {
+  const i = SHEET_STYLE_KEYS.indexOf(key);
+  return i < 0 ? 0 : i;
+}
+
+// 由 SHEET_STYLES 產生 styles.xml：字型、填滿、框線各自去重，cellXfs 一個樣式一筆
+function buildStylesXml() {
+  const fontKey = (s) => `${s.b ? 1 : 0}|${s.sz || 11}|${s.color || ""}`;
+  const fonts = [];
+  const fontIdx = {};
+  const fills = [
+    `<fill><patternFill patternType="none"/></fill>`,
+    `<fill><patternFill patternType="gray125"/></fill>`, // Excel 規定前兩個必須是這兩種
+  ];
+  const fillIdx = {};
+
+  SHEET_STYLE_KEYS.forEach((k) => {
+    const s = SHEET_STYLES[k];
+    const fk = fontKey(s);
+    if (fontIdx[fk] == null) {
+      fontIdx[fk] = fonts.length;
+      fonts.push(
+        `<font>${s.b ? "<b/>" : ""}<sz val="${s.sz || 11}"/>${
+          s.color ? `<color rgb="${s.color}"/>` : ""
+        }<name val="Calibri"/></font>`
+      );
+    }
+    if (s.fill && fillIdx[s.fill] == null) {
+      fillIdx[s.fill] = fills.length;
+      fills.push(
+        `<fill><patternFill patternType="solid"><fgColor rgb="${s.fill}"/><bgColor indexed="64"/></patternFill></fill>`
+      );
+    }
+  });
+
+  const thin = `<color rgb="FFBFBFBF"/>`;
+  const borders = [
+    `<border/>`,
+    `<border><left style="thin">${thin}</left><right style="thin">${thin}</right><top style="thin">${thin}</top><bottom style="thin">${thin}</bottom></border>`,
+  ];
+
+  const xfs = SHEET_STYLE_KEYS.map((k) => {
+    const s = SHEET_STYLES[k];
+    const attrs = [
+      `numFmtId="0"`,
+      `fontId="${fontIdx[fontKey(s)]}"`,
+      `fillId="${s.fill ? fillIdx[s.fill] : 0}"`,
+      `borderId="${s.border ? 1 : 0}"`,
+      `xfId="0"`,
+      `applyFont="1"`,
+      s.fill ? `applyFill="1"` : "",
+      s.border ? `applyBorder="1"` : "",
+      s.center ? `applyAlignment="1"` : "",
+    ]
+      .filter(Boolean)
+      .join(" ");
+    return `<xf ${attrs}>${s.center ? `<alignment horizontal="center" vertical="center"/>` : ""}</xf>`;
+  });
+
+  return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">
+<fonts count="${fonts.length}">${fonts.join("")}</fonts>
+<fills count="${fills.length}">${fills.join("")}</fills>
+<borders count="${borders.length}">${borders.join("")}</borders>
+<cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs>
+<cellXfs count="${xfs.length}">${xfs.join("")}</cellXfs>
+</styleSheet>`;
+}
+
+/* sheets: [{
+     name,
+     rows: [[cell, ...], ...],      // cell 可以是字串／數字，或 { v, s } 指定 SHEET_STYLES 的樣式鍵
+     widths?: [n, ...],
+     headerRows?: 1,                // 前幾列自動套 bold（{ v, s } 自己指定的樣式優先）
+     merges?: [[r1, c1, r2, c2]],   // 0-based，含端點
+     freeze?: { row, col },         // 凍結窗格：上方 row 列、左側 col 欄
+     rowHeights?: { [rowIndex]: pt },
+   }]
+   所有值都以文字寫入（inlineStr），避免日期序號與地區設定的坑。 */
 function buildXlsx(sheets) {
   const sheetXml = sheets.map((sheet) => {
+    const views = sheet.freeze
+      ? `<sheetViews><sheetView workbookViewId="0"><pane xSplit="${sheet.freeze.col || 0}" ySplit="${
+          sheet.freeze.row || 0
+        }" topLeftCell="${colLetter(sheet.freeze.col || 0)}${
+          (sheet.freeze.row || 0) + 1
+        }" activePane="bottomRight" state="frozen"/></sheetView></sheetViews>`
+      : "";
+
     const cols = (sheet.widths || []).length
       ? `<cols>${sheet.widths
           .map((w, i) => `<col min="${i + 1}" max="${i + 1}" width="${w}" customWidth="1"/>`)
@@ -178,23 +304,39 @@ function buildXlsx(sheets) {
       : "";
 
     const headerRows = sheet.headerRows == null ? 1 : sheet.headerRows;
+    const heights = sheet.rowHeights || {};
+
     const rows = sheet.rows
       .map((row, ri) => {
-        const style = ri < headerRows ? ' s="1"' : "";
         const cells = row
-          .map((val, ci) => {
-            if (val == null || val === "") return "";
-            return `<c r="${colLetter(ci)}${ri + 1}" t="inlineStr"${style}><is><t xml:space="preserve">${xmlEscape(
+          .map((raw, ci) => {
+            const styled = raw !== null && typeof raw === "object";
+            const val = styled ? raw.v : raw;
+            const key = styled ? raw.s : ri < headerRows ? "bold" : null;
+            const si = key ? styleIndex(key) : 0;
+            const ref = `${colLetter(ci)}${ri + 1}`;
+            const empty = val == null || val === "";
+            // 空白但有樣式的格子一定要輸出 —— 甘特圖的長條就是靠純底色的空格畫出來的
+            if (empty) return si ? `<c r="${ref}" s="${si}"/>` : "";
+            return `<c r="${ref}" t="inlineStr"${si ? ` s="${si}"` : ""}><is><t xml:space="preserve">${xmlEscape(
               val
             )}</t></is></c>`;
           })
           .join("");
-        return `<row r="${ri + 1}">${cells}</row>`;
+        const ht = heights[ri] ? ` ht="${heights[ri]}" customHeight="1"` : "";
+        return `<row r="${ri + 1}"${ht}>${cells}</row>`;
       })
       .join("");
 
+    const merges = (sheet.merges || []).length
+      ? `<mergeCells count="${sheet.merges.length}">${sheet.merges
+          .map(([r1, c1, r2, c2]) => `<mergeCell ref="${colLetter(c1)}${r1 + 1}:${colLetter(c2)}${r2 + 1}"/>`)
+          .join("")}</mergeCells>`
+      : "";
+
+    // 元素順序是 schema 規定的：sheetViews -> cols -> sheetData -> mergeCells
     return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">${cols}<sheetData>${rows}</sheetData></worksheet>`;
+<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">${views}${cols}<sheetData>${rows}</sheetData>${merges}</worksheet>`;
   });
 
   const contentTypes = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
@@ -236,22 +378,12 @@ ${sheets
 <Relationship Id="rId${sheets.length + 1}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/>
 </Relationships>`;
 
-  // 只需要兩種格式：一般與粗體（標題列）
-  const styles = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">
-<fonts count="2"><font><sz val="11"/><name val="Calibri"/></font><font><b/><sz val="11"/><name val="Calibri"/></font></fonts>
-<fills count="1"><fill><patternFill patternType="none"/></fill></fills>
-<borders count="1"><border/></borders>
-<cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs>
-<cellXfs count="2"><xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/><xf numFmtId="0" fontId="1" fillId="0" borderId="0" xfId="0" applyFont="1"/></cellXfs>
-</styleSheet>`;
-
   const files = [
     { name: "[Content_Types].xml", data: utf8(contentTypes) },
     { name: "_rels/.rels", data: utf8(rootRels) },
     { name: "xl/workbook.xml", data: utf8(workbook) },
     { name: "xl/_rels/workbook.xml.rels", data: utf8(workbookRels) },
-    { name: "xl/styles.xml", data: utf8(styles) },
+    { name: "xl/styles.xml", data: utf8(buildStylesXml()) },
     ...sheetXml.map((xml, i) => ({ name: `xl/worksheets/sheet${i + 1}.xml`, data: utf8(xml) })),
   ];
 
