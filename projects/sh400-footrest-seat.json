@@ -378,6 +378,50 @@
             "end": "2027-06-20"
           },
           "subtasks": []
+        },
+        {
+          "title": "小P提供 3D模型圖 to MJ",
+          "start": "2026-11-20",
+          "end": "2026-11-22",
+          "status": "upcoming",
+          "owner": "小P",
+          "note": "",
+          "links": [],
+          "baseline": null,
+          "subtasks": []
+        },
+        {
+          "title": "MJ提供Simon 3D Print & 3D 列印",
+          "start": "2026-11-23",
+          "end": "2026-11-24",
+          "status": "upcoming",
+          "owner": "MJ / Simon",
+          "note": "",
+          "links": [],
+          "baseline": null,
+          "subtasks": []
+        },
+        {
+          "title": "ID Fix (Kris Approve)",
+          "start": "2026-11-25",
+          "end": "2026-11-27",
+          "status": "upcoming",
+          "owner": "Bill / MJ",
+          "note": "",
+          "links": [],
+          "baseline": null,
+          "subtasks": []
+        },
+        {
+          "title": "製作Final 3D 發出模型製作",
+          "start": "2026-11-27",
+          "end": "2026-12-10",
+          "status": "upcoming",
+          "owner": "BK",
+          "note": "",
+          "links": [],
+          "baseline": null,
+          "subtasks": []
         }
       ]
     },
